@@ -227,6 +227,50 @@ final class AllTimeHistoryBoundsTests: XCTestCase {
         XCTAssertFalse(accessibility.contains(email))
     }
 
+    func testTooltipOmitsZeroAndSingleContributionRows() {
+        let day = UsageDayKey(year: 2026, month: 4, day: 21)
+        let winner = UsageDayContributionRow(
+            seatID: .seat1,
+            label: "John",
+            tokens: 246,
+            spendCents: nil,
+            share: 1
+        )
+        let zero = UsageDayContributionRow(
+            seatID: .seat2,
+            label: "Other",
+            tokens: 0,
+            spendCents: nil,
+            share: 0
+        )
+        let single = UsageDayInspection(
+            day: day,
+            totalTokens: 246,
+            spendCents: nil,
+            coverage: .complete,
+            contributions: [winner, zero]
+        )
+        XCTAssertTrue(single.tooltipContributions(metric: .tokens).isEmpty)
+
+        let split = UsageDayInspection(
+            day: day,
+            totalTokens: 300,
+            spendCents: nil,
+            coverage: .complete,
+            contributions: [
+                winner,
+                UsageDayContributionRow(
+                    seatID: .seat2,
+                    label: "Other",
+                    tokens: 54,
+                    spendCents: nil,
+                    share: 0.18
+                ),
+            ]
+        )
+        XCTAssertEqual(split.tooltipContributions(metric: .tokens).map(\.label), ["John", "Other"])
+    }
+
     func testInspectionAccessibilityUsesFullTokenCount() {
         let inspection = UsageDayInspection(
             day: UsageDayKey(year: 2026, month: 6, day: 1),

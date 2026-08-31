@@ -87,6 +87,38 @@ final class SeatPresentationTests: XCTestCase {
         XCTAssertFalse(connected.rootMenuTitle.contains("Seat"))
     }
 
+    func testTeamLabelUsesPlanOwnerOrPlanName() {
+        let stripe = SeatPresentation(
+            seatID: .seat1,
+            label: .displayName(DisplayName("ada")!),
+            auth: .signedIn,
+            planName: "Ultra",
+            planOwner: .personal,
+            identityPolicy: .maskEmail
+        )
+        XCTAssertFalse(stripe.isTeamAccount)
+
+        let teamOwner = SeatPresentation(
+            seatID: .seat1,
+            label: .displayName(DisplayName("ada")!),
+            auth: .signedIn,
+            planName: "Ultra",
+            planOwner: .team,
+            identityPolicy: .maskEmail
+        )
+        XCTAssertTrue(teamOwner.isTeamAccount)
+        XCTAssertEqual(teamOwner.planBadgeTitle, "Ultra")
+
+        let namedTeam = SeatPresentation(
+            seatID: .seat1,
+            label: .displayName(DisplayName("ada")!),
+            auth: .signedIn,
+            planName: "team",
+            identityPolicy: .maskEmail
+        )
+        XCTAssertTrue(namedTeam.isTeamAccount)
+    }
+
     func testAggregateLineIsConcise() {
         let presentation = AppPresentation(
             seats: [],
@@ -99,9 +131,48 @@ final class SeatPresentationTests: XCTestCase {
             setHardLimitPhase: .idle
         )
         XCTAssertEqual(presentation.aggregateLine, "1 connected · On-demand")
+        XCTAssertEqual(presentation.menuBarLabel, ProductName.display)
         XCTAssertFalse(presentation.aggregateLine.contains("Focus"))
         XCTAssertFalse(presentation.aggregateLine.contains("Seat"))
         XCTAssertFalse(presentation.aggregateLine.contains("/5"))
+        XCTAssertFalse(presentation.menuBarLabel.hasPrefix("MC ·"))
+    }
+
+    func testMenuBarLabelUsesDesktopBoundUsageAndOnDemandSpend() {
+        let seat = SeatPresentation(
+            seatID: .seat1,
+            label: .displayName(DisplayName("john 5")!),
+            auth: .signedIn,
+            autoPercent: PercentUsed(unchecked: 68),
+            apiPercent: PercentUsed(unchecked: 100),
+            onDemand: OnDemandPresentation(
+                mode: .fixed(PositiveDollars(190)!),
+                usedCents: AmountCents(cents: 12_620)
+            ),
+            isFocused: true,
+            isDesktopBound: true,
+            identityPolicy: .maskEmail
+        )
+        let presentation = AppPresentation(
+            seats: [seat],
+            signedInCount: 1,
+            focusedSeatID: .seat1,
+            worstAttention: .onDemandActive,
+            identityPolicy: .maskEmail,
+            bootstrapPhase: .settled(.kept(.seat1)),
+            usageRefreshPhase: .idle,
+            setHardLimitPhase: .idle
+        )
+        XCTAssertEqual(presentation.menuBarLabel, "68 · 100 · $126.20 / $190")
+        XCTAssertEqual(
+            presentation.menuBarAccessibilityLabel,
+            "john 5, Cursor 68 percent, API 100 percent, $126.20 / $190"
+        )
+        XCTAssertEqual(presentation.menuBarStatusSeat?.seatID, .seat1)
+        XCTAssertTrue(seat.onDemand?.isConsuming == true)
+        XCTAssertFalse(presentation.menuBarLabel.contains("Cursor"))
+        XCTAssertFalse(presentation.menuBarLabel.contains("API"))
+        XCTAssertFalse(presentation.menuBarLabel.contains("MC ·"))
     }
 
     func testMenuAttentionPriority() {

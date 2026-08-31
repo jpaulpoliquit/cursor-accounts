@@ -216,11 +216,12 @@ struct UsageChartPlotView: View {
     private func selectionMarks(for inspection: UsageDayInspection) -> some ChartContent {
         let x = date(for: inspection.day)
         let y = inspectionValue(inspection)
+        // cursor.com/@jpl: 1px quaternary rule + 6pt accent dot. Nothing when not hovering.
         RuleMark(x: .value("Selected", x))
             .foregroundStyle(CursorProfile.quaternaryFill(colorScheme))
             .lineStyle(StrokeStyle(lineWidth: 1))
         PointMark(x: .value("Selected", x), y: .value(metric.chartTitle, y))
-            .foregroundStyle(CursorProfile.lineStroke(highContrast: contrast == .increased))
+            .foregroundStyle(CursorProfile.chartAccent)
             .symbolSize(28)
     }
 
@@ -279,20 +280,21 @@ struct UsageChartPlotView: View {
         let stacked = showsContributionRows(inspection)
         return VStack(alignment: stacked ? .leading : .center, spacing: 0) {
             Text(inspection.tooltipTotalText(metric: metric))
-                .font(CursorProfile.Font.tooltipValue)
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.primary)
+                .monospacedDigit()
                 .multilineTextAlignment(stacked ? .leading : .center)
             Text(profileDateLabel(date(for: inspection.day)))
-                .font(CursorProfile.Font.tooltipMeta)
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(CursorProfile.tertiaryText(colorScheme))
                 .multilineTextAlignment(stacked ? .leading : .center)
             if metric == .costCents, inspection.costCompositionUnavailable {
                 Text("Per-account cost unavailable")
-                    .font(CursorProfile.Font.tooltipMeta)
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(CursorProfile.tertiaryText(colorScheme))
             }
             if stacked {
-                ForEach(inspection.contributions, id: \.seatID) { row in
+                ForEach(inspection.tooltipContributions(metric: metric), id: \.seatID) { row in
                     HStack(spacing: 6) {
                         Circle()
                             .fill(CursorProfile.accountTint(for: row.seatID))
@@ -314,8 +316,7 @@ struct UsageChartPlotView: View {
         .background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(CursorProfile.chrome(colorScheme))
-                .shadow(color: .black.opacity(colorScheme == .dark ? 0.28 : 0.035), radius: 1.5, y: 0)
-                .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.02), radius: 12, y: 16)
+                .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
         }
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -350,7 +351,7 @@ struct UsageChartPlotView: View {
 
     private func showsContributionRows(_ inspection: UsageDayInspection) -> Bool {
         if case .allAccounts = series.scope, !inspection.costCompositionUnavailable {
-            return !inspection.contributions.isEmpty
+            return !inspection.tooltipContributions(metric: metric).isEmpty
         }
         return false
     }
@@ -377,7 +378,7 @@ struct UsageChartPlotView: View {
             lines += 1
         }
         if case .allAccounts = series.scope, !inspection.costCompositionUnavailable {
-            lines += inspection.contributions.count
+            lines += inspection.tooltipContributions(metric: metric).count
         }
         return 12 + CGFloat(lines) * 16
     }

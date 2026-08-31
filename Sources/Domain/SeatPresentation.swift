@@ -27,6 +27,16 @@ public struct OnDemandPresentation: Sendable, Equatable, Hashable {
     /// Compatibility alias for spend line (submenu/Dashboard).
     public var menuTitle: String { spendLine }
 
+    /// Proven on-demand spend while a spend mode is on.
+    public var isConsuming: Bool {
+        switch mode {
+        case .off:
+            return false
+        case .fixed, .unlimited:
+            return (usedCents?.cents ?? 0) > 0
+        }
+    }
+
     public var fixedProgressFraction: Double? {
         guard case .fixed(let limit) = mode, let usedCents else { return nil }
         return OnDemandSpendFormat.progressFraction(used: usedCents, limit: limit)
@@ -44,6 +54,8 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
     public let auth: SeatAuthState
     public let planName: String?
     public let planPrice: String?
+    public let planOwner: PlanOwner?
+    public let pictureURL: URL?
     public let resetDate: Date?
     public let autoPercent: PercentUsed?
     public let apiPercent: PercentUsed?
@@ -69,6 +81,8 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
         auth: SeatAuthState,
         planName: String? = nil,
         planPrice: String? = nil,
+        planOwner: PlanOwner? = nil,
+        pictureURL: URL? = nil,
         resetDate: Date? = nil,
         autoPercent: PercentUsed? = nil,
         apiPercent: PercentUsed? = nil,
@@ -96,6 +110,8 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
         self.auth = auth
         self.planName = planName
         self.planPrice = planPrice
+        self.planOwner = planOwner
+        self.pictureURL = pictureURL
         self.resetDate = resetDate
         self.autoPercent = autoPercent
         self.apiPercent = apiPercent
@@ -167,6 +183,20 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
             }
             return parts.joined(separator: " · ")
         }
+    }
+
+    public var isTeamAccount: Bool {
+        if case .team = planOwner { return true }
+        switch planName?.lowercased() {
+        case "team", "business", "enterprise":
+            return true
+        default:
+            return false
+        }
+    }
+
+    public var planBadgeTitle: String? {
+        planName.map { $0.capitalized }
     }
 
     public var focusedSummaryLine: String? {
@@ -276,11 +306,52 @@ public struct AppPresentation: Sendable, Equatable {
     }
 
     public var menuBarLabel: String {
-        let short = worstAttention.shortTitle
-        if short.isEmpty {
-            return "MC · \(signedInCount)"
+        guard let seat = menuBarStatusSeat, seat.auth == .signedIn || seat.auth == .needsReauth else {
+            return ProductName.display
         }
-        return "MC · \(signedInCount) · \(short)"
+        var parts: [String] = []
+        if let autoPercent = seat.autoPercent {
+            parts.append("\(Int(autoPercent.percent.rounded()))")
+        }
+        if let apiPercent = seat.apiPercent {
+            parts.append("\(Int(apiPercent.percent.rounded()))")
+        }
+        if let onDemand = seat.onDemand {
+            switch onDemand.mode {
+            case .off:
+                break
+            case .fixed, .unlimited:
+                parts.append(onDemand.spendLine)
+            }
+        }
+        return parts.isEmpty ? ProductName.display : parts.joined(separator: " · ")
+    }
+
+    public var menuBarAccessibilityLabel: String {
+        guard let seat = menuBarStatusSeat, seat.auth == .signedIn || seat.auth == .needsReauth else {
+            return ProductName.display
+        }
+        var parts = [seat.menuCompactLabel]
+        if let autoPercent = seat.autoPercent {
+            parts.append("Cursor \(Int(autoPercent.percent.rounded())) percent")
+        }
+        if let apiPercent = seat.apiPercent {
+            parts.append("API \(Int(apiPercent.percent.rounded())) percent")
+        }
+        if let onDemand = seat.onDemand {
+            switch onDemand.mode {
+            case .off:
+                break
+            case .fixed, .unlimited:
+                parts.append(onDemand.spendLine)
+            }
+        }
+        return parts.joined(separator: ", ")
+    }
+
+    /// Desktop-bound account when Cursor is running, otherwise the focused seat.
+    public var menuBarStatusSeat: SeatPresentation? {
+        connectedAccounts.first(where: \.isDesktopBound) ?? focusedSeat
     }
 
     public var focusedSeat: SeatPresentation? {

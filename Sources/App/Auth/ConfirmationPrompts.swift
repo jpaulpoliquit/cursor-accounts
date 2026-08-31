@@ -8,7 +8,7 @@ enum ConfirmationPrompts {
         let alert = NSAlert()
         alert.messageText = "Sign out \(accountLabel) locally?"
         alert.informativeText =
-            "Removes this account from CursorBar only. Cursor desktop storage is not changed."
+            "Removes this account from \(ProductName.display) only. Cursor desktop storage is not changed."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Sign Out Locally")
         alert.addButton(withTitle: "Cancel")

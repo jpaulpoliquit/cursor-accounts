@@ -55,6 +55,9 @@ final class DashboardOnDemandSpendRowTests: XCTestCase {
             .fixed
         )
         XCTAssertEqual(DashboardOnDemandMenuSelection(mode: .unlimited), .unlimited)
+        XCTAssertEqual(DashboardOnDemandMenuSelection.off.editorTitle, "Off")
+        XCTAssertEqual(DashboardOnDemandMenuSelection.fixed.editorTitle, "Fixed")
+        XCTAssertEqual(DashboardOnDemandMenuSelection.unlimited.editorTitle, "Unlimited")
 
         let seat = SeatPresentation(
             seatID: .seat1,
@@ -132,5 +135,43 @@ final class DashboardOnDemandSpendRowTests: XCTestCase {
         XCTAssertTrue(projected.showsActiveIndicator)
         XCTAssertTrue(projected.cardAccessibilityLabel.contains("Active"))
         XCTAssertFalse(projected.cardAccessibilityLabel.contains("Desktop bound"))
+        XCTAssertTrue(projected.canPresentOnDemandEditor)
+    }
+
+    func testEditorDraftResolvesModesAndParsesDollars() {
+        let fromFixed = OnDemandEditorDraft.make(
+            mode: .fixed(PositiveDollars(320)!),
+            policy: nil
+        )
+        XCTAssertEqual(fromFixed.selection, .fixed)
+        XCTAssertEqual(fromFixed.fixedText, "320")
+        XCTAssertEqual(fromFixed.resolvedMode(policy: nil), .success(.fixed(PositiveDollars(320)!)))
+
+        let off = OnDemandEditorDraft(selection: .off, fixedText: "")
+        XCTAssertEqual(off.resolvedMode(policy: nil), .success(.off))
+
+        let unlimited = OnDemandEditorDraft(selection: .unlimited, fixedText: "12")
+        XCTAssertEqual(unlimited.resolvedMode(policy: nil), .success(.unlimited))
+
+        XCTAssertEqual(OnDemandEditorDraft.parseWholeDollars("$1,190"), 1190)
+        XCTAssertNil(OnDemandEditorDraft.parseWholeDollars("abc"))
+
+        let invalid = OnDemandEditorDraft(selection: .fixed, fixedText: "0")
+        XCTAssertEqual(invalid.resolvedMode(policy: nil), .failure(.notPositiveWholeDollars))
+
+        let policy = UsagePolicy(minLimitCents: AmountCents(cents: 10_00), maxLimitCents: AmountCents(cents: 50_00))
+        let low = OnDemandEditorDraft(selection: .fixed, fixedText: "4")
+        XCTAssertEqual(low.resolvedMode(policy: policy), .failure(.belowPolicyMinimum(10)))
+
+        let writing = DashboardSeatControlsProjection.project(
+            seat: SeatPresentation(
+                seatID: .seat1,
+                label: .displayName(DisplayName("john 5")!),
+                auth: .signedIn,
+                identityPolicy: .maskEmail
+            ),
+            hardLimitPhase: .writing(.seat1)
+        )
+        XCTAssertFalse(writing.canPresentOnDemandEditor)
     }
 }

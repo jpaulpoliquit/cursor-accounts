@@ -7,9 +7,16 @@ struct DashboardAccountTable: View {
     @Environment(\.colorSchemeContrast) private var contrast
     @State private var hoveredID: SeatID?
 
+    private var listing: DashboardAccountFilter.Listing {
+        DashboardAccountFilter.Listing.make(
+            seats: model.presentation.connectedAccounts,
+            query: model.accountFilter
+        )
+    }
+
     private var seats: [SeatPresentation] {
         DashboardAccountOrdering.sorted(
-            model.presentation.connectedAccounts,
+            listing.visible,
             by: model.accountSort,
             direction: model.accountSortDirection
         )
@@ -18,11 +25,11 @@ struct DashboardAccountTable: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            if seats.isEmpty {
-                Text("No accounts connected")
-                    .font(CursorProfile.Font.meta)
+            if let empty = listing.emptyReason {
+                Text(empty.message)
+                    .font(CursorProfile.Font.table)
                     .foregroundStyle(.secondary)
-                    .padding(18)
+                    .padding(20)
             } else {
                 ForEach(seats) { seat in
                     row(seat)
@@ -30,9 +37,9 @@ struct DashboardAccountTable: View {
             }
         }
         .background(CursorProfile.paper(colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(
                     CursorProfile.hairline(colorScheme, highContrast: contrast == .increased),
                     lineWidth: 1
@@ -42,54 +49,41 @@ struct DashboardAccountTable: View {
         .accessibilityLabel("Accounts table")
     }
 
+    private var headerTrailing: some View {
+        Color.clear.frame(width: 32, height: 1)
+    }
+
     private var header: some View {
-        HStack(spacing: 16) {
-            HStack(spacing: 10) {
-                Color.clear.frame(width: 28)
-                sortHeader("Name", .name, alignment: .leading)
-            }
-            .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
-            Text("Plan")
-                .font(CursorProfile.Font.statLabel)
+        HStack(spacing: 10) {
+            sortHeader("Name", .name, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            sortHeader(leadingUsageHeader, .usage, alignment: .trailing)
+                .frame(width: 64, alignment: .trailing)
+            Text(trailingUsageHeader)
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 72, alignment: .leading)
-            sortHeader("Cursor", .usage, alignment: .trailing)
-                .frame(width: 100, alignment: .trailing)
-            sortHeader("Other", .usage, alignment: .trailing)
-                .frame(width: 100, alignment: .trailing)
+                .frame(width: 64, alignment: .trailing)
             sortHeader("On-demand", .onDemand, alignment: .trailing)
-                .frame(width: 108, alignment: .trailing)
+                .frame(width: 100, alignment: .trailing)
             sortHeader("Resets", .reset, alignment: .trailing)
                 .frame(width: 64, alignment: .trailing)
-            Color.clear.frame(width: 28)
+            headerTrailing
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .overlay(alignment: .bottom) { rowRule }
     }
 
     private func row(_ seat: SeatPresentation) -> some View {
         let hovered = hoveredID == seat.seatID
-        return HStack(spacing: 16) {
+        return HStack(alignment: .center, spacing: 10) {
             nameCell(seat)
-                .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
-            Text(seat.planName?.capitalized ?? "—")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(seat.planName == nil ? Color.secondary : Color.primary)
-                .lineLimit(1)
-                .frame(width: 72, alignment: .leading)
-            DashboardPercentMeter(percent: seat.autoPercent)
-                .frame(width: 100, alignment: .trailing)
-            DashboardPercentMeter(percent: seat.apiPercent)
-                .frame(width: 100, alignment: .trailing)
-            Text(seat.onDemand?.spendLine ?? "—")
-                .font(.system(size: 12, weight: .medium).monospacedDigit())
-                .foregroundStyle(seat.onDemand == nil ? Color.secondary : Color.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(width: 108, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            usageLeadingCell(seat)
+            usageTrailingCell(seat)
+            onDemandCell(seat)
             Text(resetLabel(seat.resetDate))
-                .font(.system(size: 12, weight: .medium))
+                .font(CursorProfile.Font.table.monospacedDigit())
                 .foregroundStyle(seat.resetDate == nil ? Color.secondary : Color.primary)
                 .frame(width: 64, alignment: .trailing)
             DashboardAccountActionsMenu(
@@ -97,29 +91,46 @@ struct DashboardAccountTable: View {
                 hardLimitPhase: model.presentation.setHardLimitPhase,
                 model: model
             )
-            .frame(width: 28)
+            .frame(width: 32, alignment: .trailing)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(hovered ? CursorProfile.quaternaryFill(colorScheme) : Color.clear)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .frame(minHeight: 52, alignment: .center)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(hovered ? CursorProfile.quaternaryFill(colorScheme) : Color.clear)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+        }
         .overlay(alignment: .bottom) { rowRule }
         .onHover { hovering in
             hoveredID = hovering ? seat.seatID : (hoveredID == seat.seatID ? nil : hoveredID)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(rowAccessibility(seat))
+        .accessibilityAction(named: "Edit on-demand") {
+            if canEditOnDemand(seat) {
+                model.presentOnDemandEditor(seatID: seat.seatID)
+            }
+        }
     }
 
     private func nameCell(_ seat: SeatPresentation) -> some View {
-        HStack(spacing: 10) {
-            CursorProfileAvatar(name: seat.dashboardTitle, size: 28)
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 12) {
+            CursorProfileAvatar(name: seat.dashboardTitle, pictureURL: seat.pictureURL, size: 36)
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(seat.dashboardTitle)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(CursorProfile.Font.table.weight(.semibold))
                         .lineLimit(1)
                     if seat.isDesktopBound {
                         ActiveMenuMarker()
+                    }
+                    if let plan = seat.planBadgeTitle, !plan.isEmpty {
+                        CursorProfilePill(title: plan)
+                    }
+                    if seat.isTeamAccount, seat.planBadgeTitle?.caseInsensitiveCompare("Team") != .orderedSame {
+                        CursorProfilePill(title: "Team")
                     }
                 }
                 if let email = seat.revealedEmail, email.value != seat.dashboardTitle {
@@ -132,11 +143,94 @@ struct DashboardAccountTable: View {
         }
     }
 
+    private var leadingUsageHeader: String {
+        switch model.accountUsageMetric {
+        case .percent: "Cursor"
+        case .tokens: "Tokens"
+        }
+    }
+
+    private var trailingUsageHeader: String {
+        switch model.accountUsageMetric {
+        case .percent: "API"
+        case .tokens: "Reqs"
+        }
+    }
+
+    private func usageLeadingCell(_ seat: SeatPresentation) -> some View {
+        Text(leadingUsageText(seat))
+            .font(CursorProfile.Font.table.monospacedDigit())
+            .foregroundStyle(leadingUsageText(seat) == "—" ? Color.secondary : Color.primary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
+            .frame(width: 64, alignment: .trailing)
+    }
+
+    private func usageTrailingCell(_ seat: SeatPresentation) -> some View {
+        Text(trailingUsageText(seat))
+            .font(CursorProfile.Font.table.monospacedDigit())
+            .foregroundStyle(trailingUsageText(seat) == "—" ? Color.secondary : Color.primary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
+            .frame(width: 64, alignment: .trailing)
+    }
+
+    private func leadingUsageText(_ seat: SeatPresentation) -> String {
+        switch model.accountUsageMetric {
+        case .percent:
+            return percentText(seat.autoPercent)
+        case .tokens:
+            if let totals = model.usageSeries.insights?.seatActivityTotals(seatID: seat.seatID) {
+                return TokenCountFormat.compact(totals.tokens)
+            }
+            return "—"
+        }
+    }
+
+    private func trailingUsageText(_ seat: SeatPresentation) -> String {
+        switch model.accountUsageMetric {
+        case .percent:
+            return percentText(seat.apiPercent)
+        case .tokens:
+            if let totals = model.usageSeries.insights?.seatActivityTotals(seatID: seat.seatID) {
+                return TokenCountFormat.compact(Int64(totals.requests))
+            }
+            return "—"
+        }
+    }
+
+    private func percentText(_ percent: PercentUsed?) -> String {
+        guard let percent else { return "—" }
+        return "\(Int(percent.percent.rounded()))%"
+    }
+
+    @ViewBuilder
+    private func onDemandCell(_ seat: SeatPresentation) -> some View {
+        let line = seat.onDemand?.spendLine ?? "—"
+        let label = Text(line)
+            .font(CursorProfile.Font.table.monospacedDigit())
+            .foregroundStyle(seat.onDemand == nil ? Color.secondary : Color.primary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
+            .frame(width: 100, alignment: .trailing)
+        if canEditOnDemand(seat) {
+            Button {
+                model.presentOnDemandEditor(seatID: seat.seatID)
+            } label: {
+                label
+            }
+            .buttonStyle(.plain)
+            .help("Edit on-demand")
+            .accessibilityHint("Edits on-demand for \(seat.dashboardTitle)")
+        } else {
+            label
+        }
+    }
+
     private var rowRule: some View {
         Rectangle()
             .fill(CursorProfile.hairline(colorScheme, highContrast: contrast == .increased))
             .frame(height: 1)
-            .padding(.leading, 52)
     }
 
     private func sortHeader(
@@ -173,21 +267,35 @@ struct DashboardAccountTable: View {
         if let email = seat.revealedEmail, email.value != seat.dashboardTitle {
             parts.append(email.value)
         }
-        if let plan = seat.planName {
+        if let plan = seat.planBadgeTitle, !plan.isEmpty {
             parts.append(plan)
         }
-        if let auto = seat.autoPercent {
-            parts.append("\(UsagePoolLabel.cursorModels.title) \(Int(auto.percent.rounded())) percent")
+        if seat.isTeamAccount {
+            parts.append("Team")
         }
-        if let api = seat.apiPercent {
-            parts.append("\(UsagePoolLabel.otherModels.title) \(Int(api.percent.rounded())) percent")
+        switch model.accountUsageMetric {
+        case .percent:
+            if let auto = seat.autoPercent {
+                parts.append("\(UsagePoolLabel.cursorModels.title) \(Int(auto.percent.rounded())) percent")
+            }
+            if let api = seat.apiPercent {
+                parts.append("\(UsagePoolLabel.otherModels.title) \(Int(api.percent.rounded())) percent")
+            }
+        case .tokens:
+            parts.append("Cursor \(leadingUsageText(seat))")
+            parts.append("Requests \(trailingUsageText(seat))")
         }
-        if let onDemand = seat.onDemand {
-            parts.append(onDemand.spendLine)
-        }
+        parts.append(seat.onDemand?.spendLine ?? "On-demand —")
         if let reset = seat.resetDate {
             parts.append("resets \(resetLabel(reset))")
         }
         return parts.joined(separator: ", ")
+    }
+
+    private func canEditOnDemand(_ seat: SeatPresentation) -> Bool {
+        DashboardSeatControlsProjection.project(
+            seat: seat,
+            hardLimitPhase: model.presentation.setHardLimitPhase
+        ).canPresentOnDemandEditor
     }
 }

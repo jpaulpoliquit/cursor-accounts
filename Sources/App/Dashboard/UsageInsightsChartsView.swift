@@ -6,6 +6,7 @@ import SwiftUI
 struct UsageInsightsChartsView: View {
     let insights: ActivityInsights
     let accountLabels: [SeatID: String]
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var inspectionIndex: ActivityInspectionIndex
     @State private var selectedHour: Double?
@@ -24,11 +25,6 @@ struct UsageInsightsChartsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: CursorProfile.sectionSpacing) {
-            UsageActivityHeatmapView(
-                days: insights.days,
-                range: insights.range,
-                timeZone: timeZone
-            )
             whenYouWork
             dailyActivity
         }
@@ -69,13 +65,7 @@ struct UsageInsightsChartsView: View {
                         x: .value("Hour", item.offset),
                         y: .value("Requests", item.element)
                     )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [CursorProfile.peachMid, CursorProfile.peach],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+                    .foregroundStyle(CursorProfile.chartAccent)
                     if let hour = selectedHourInspection {
                         RuleMark(x: .value("Selected", hour.hour))
                             .foregroundStyle(Color.secondary.opacity(0.55))
@@ -85,6 +75,11 @@ struct UsageInsightsChartsView: View {
                 .chartXScale(domain: 0...23)
                 .chartYScale(domain: 0...max(1, insights.hourOfDayCounts.max() ?? 0))
                 .chartXSelection(value: $selectedHour)
+                .onContinuousHover { phase in
+                    if case .ended = phase {
+                        selectedHour = nil
+                    }
+                }
                 .chartXAxis {
                     AxisMarks(values: [0, 6, 12, 18, 23]) { value in
                         AxisValueLabel {
@@ -129,7 +124,7 @@ struct UsageInsightsChartsView: View {
                         x: .value("Period", point.label),
                         y: .value("Requests", point.requestCount)
                     )
-                    .foregroundStyle(CursorProfile.peachDeep)
+                    .foregroundStyle(CursorProfile.chartAccent)
                     if let selected = selectedPeriodInspection, selected.label == point.label {
                         RuleMark(x: .value("Selected", point.label))
                             .foregroundStyle(Color.secondary.opacity(0.55))
@@ -137,6 +132,11 @@ struct UsageInsightsChartsView: View {
                     }
                 }
                 .chartXSelection(value: $selectedPeriodLabel)
+                .onContinuousHover { phase in
+                    if case .ended = phase {
+                        selectedPeriodLabel = nil
+                    }
+                }
                 .chartYScale(domain: 0...max(1, points.map(\.requestCount).max() ?? 0))
                 .chartXAxis {
                     AxisMarks { _ in
@@ -213,17 +213,26 @@ struct UsageInsightsChartsView: View {
                 frame.maxX - width / 2 - 8
             )
             if let originX = FiniteLayout.dimension(clampedX) {
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .center, spacing: 0) {
                     ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
                         Text(line)
-                            .font(index == 0 ? .caption.weight(.semibold) : .caption)
-                            .foregroundStyle(index == 0 ? .primary : .secondary)
+                            .font(.system(size: index == 0 ? 12 : 11, weight: index == 0 ? .semibold : .medium))
+                            .foregroundStyle(index == 0 ? .primary : CursorProfile.tertiaryText(colorScheme))
                             .monospacedDigit()
                     }
                 }
-                .padding(8)
-                .frame(width: width, alignment: .leading)
-                .cursorProfilePaper(cornerRadius: 8)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(CursorProfile.chrome(colorScheme))
+                        .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(CursorProfile.quaternaryBorder(colorScheme), lineWidth: 1)
+                }
                 .position(x: originX, y: originY)
                 .allowsHitTesting(false)
             }

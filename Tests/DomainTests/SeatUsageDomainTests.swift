@@ -2,6 +2,23 @@ import CursorBarDomain
 import XCTest
 
 final class SeatUsageDomainTests: XCTestCase {
+    func testPlanOwnerMapsStripeAndTeamProtoNames() {
+        XCTAssertEqual(PlanOwner(wire: "PLAN_OWNER_STRIPE"), .personal)
+        XCTAssertEqual(PlanOwner(wire: "plan_owner_stripe"), .personal)
+        XCTAssertEqual(PlanOwner(wire: "PLAN_OWNER_TEAM"), .team)
+        XCTAssertEqual(PlanOwner(wire: "enterprise"), .team)
+        XCTAssertEqual(PlanOwner(wire: "personal"), .personal)
+    }
+
+    func testProfilePictureURLRejectsNonHTTPS() {
+        XCTAssertNil(ProfilePictureURL.parse("http://example.com/a.png"))
+        XCTAssertNil(ProfilePictureURL.parse("javascript:alert(1)"))
+        XCTAssertEqual(
+            ProfilePictureURL.parse("https://example.com/a.png")?.absoluteString,
+            "https://example.com/a.png"
+        )
+    }
+
     func testPercentUsedRejectsNonFinite() {
         XCTAssertNil(PercentUsed(percent: .nan))
         XCTAssertNil(PercentUsed(percent: .infinity))

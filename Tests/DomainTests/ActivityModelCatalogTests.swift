@@ -88,6 +88,33 @@ final class ActivityModelCatalogTests: XCTestCase {
         XCTAssertTrue(timeline.contains("→"))
     }
 
+    func testSectionsByFamilyFollowsFamilyOrderAndSkipsEmpty() {
+        let rows = [
+            pricingRow(intent: "mystery-slug"),
+            pricingRow(intent: "o3"),
+            pricingRow(intent: "composer-2"),
+            pricingRow(intent: "cursor-small"),
+            pricingRow(intent: "gpt-5"),
+            pricingRow(intent: "cursor-grok-4.5-high"),
+        ]
+        let sections = ActivityModelCatalog.sectionsByFamily(rows)
+        XCTAssertEqual(sections.map(\.family), [
+            .composer,
+            .grok,
+            .gpt,
+            .oSeries,
+            .cursor,
+            .other,
+        ])
+        XCTAssertFalse(sections.contains { $0.family == .claude })
+        XCTAssertEqual(sections.first { $0.family == .grok }?.rows.map(\.modelIntent), [
+            "cursor-grok-4.5-high",
+        ])
+        XCTAssertEqual(sections.first { $0.family == .cursor }?.rows.map(\.modelIntent), [
+            "cursor-small",
+        ])
+    }
+
     func testAnalyzerAttachesCatalog() {
         let insights = ActivityAnalyzer.analyze(
             seats: [
@@ -114,6 +141,20 @@ final class ActivityModelCatalogTests: XCTestCase {
         XCTAssertEqual(insights.modelCatalog.models.count, 1)
         XCTAssertEqual(insights.modelCatalog.models[0].modelIntent, "o3")
         XCTAssertEqual(insights.modelCatalog.totalSubsidizedCents, 30)
+    }
+
+    private func pricingRow(intent: String) -> ModelPricingRow {
+        ModelPricingRow(
+            modelIntent: intent,
+            displayName: ModelDisplayNames.displayName(for: intent),
+            requestCount: 1,
+            tokens: 1,
+            usageValueCents: 1,
+            onDemandChargedCents: 0,
+            usageValueEventCount: 1,
+            onDemandEventCount: 0,
+            months: []
+        )
     }
 
     private func request(

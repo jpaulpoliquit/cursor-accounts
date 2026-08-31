@@ -5,26 +5,42 @@ import Foundation
 public struct HydratedAccountIdentity: Sendable, Equatable, Hashable {
     public let email: Email?
     public let displayName: DisplayName?
+    public let pictureURL: URL?
+    public let isTeamAccount: Bool
 
     public var isUsableForPresentation: Bool {
         email != nil || displayName != nil
     }
 
-    public init?(email: Email?, displayName: DisplayName?) {
+    public init?(
+        email: Email?,
+        displayName: DisplayName?,
+        pictureURL: URL? = nil,
+        isTeamAccount: Bool = false
+    ) {
         guard email != nil || displayName != nil else { return nil }
         self.email = email
         self.displayName = displayName
+        self.pictureURL = pictureURL
+        self.isTeamAccount = isTeamAccount
     }
 
     /// Parse GetMe-shaped fields into a usable identity. Rejects empty / email-shaped names.
     public static func fromProfile(
         emailRaw: String?,
         firstName: String?,
-        lastName: String?
+        lastName: String?,
+        pictureRaw: String? = nil,
+        isTeamAccount: Bool = false
     ) -> HydratedAccountIdentity? {
         let email = emailRaw.flatMap(Email.init)
         let displayName = composeDisplayName(firstName: firstName, lastName: lastName)
-        return HydratedAccountIdentity(email: email, displayName: displayName)
+        return HydratedAccountIdentity(
+            email: email,
+            displayName: displayName,
+            pictureURL: ProfilePictureURL.parse(pictureRaw),
+            isTeamAccount: isTeamAccount
+        )
     }
 
     public static func composeDisplayName(firstName: String?, lastName: String?) -> DisplayName? {

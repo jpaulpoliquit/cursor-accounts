@@ -20,11 +20,27 @@ struct SeatCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 8) {
+                CursorProfileAvatar(
+                    name: seat.dashboardTitle,
+                    pictureURL: seat.pictureURL,
+                    size: 36
+                )
                 Text(seat.dashboardTitle)
                     .font(CursorProfile.Font.section)
                     .lineLimit(2)
                 if projection.showsActiveIndicator {
                     ActiveMenuMarker()
+                }
+                if let plan = seat.planBadgeTitle, !plan.isEmpty {
+                    CursorProfilePill(title: plan)
+                }
+                if seat.isTeamAccount, seat.planBadgeTitle?.caseInsensitiveCompare("Team") != .orderedSame {
+                    CursorProfilePill(title: "Team")
+                }
+                if let price = seat.planPrice, !price.isEmpty {
+                    Text(price)
+                        .font(CursorProfile.Font.meta)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 8)
                 DashboardAccountActionsMenu(
@@ -64,20 +80,10 @@ struct SeatCardView: View {
 
     @ViewBuilder
     private var detailBlock: some View {
-        if let planName = seat.planName {
-            HStack(spacing: 8) {
-                CursorProfilePill(title: planName.capitalized)
-                if let price = seat.planPrice, !price.isEmpty {
-                    Text(price)
-                        .font(CursorProfile.Font.meta)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            if let reset = seat.resetDate {
-                Text("Resets \(reset.formatted(date: .abbreviated, time: .omitted))")
-                    .font(CursorProfile.Font.meta)
-                    .foregroundStyle(.secondary)
-            }
+        if let reset = seat.resetDate {
+            Text("Resets \(reset.formatted(date: .abbreviated, time: .omitted))")
+                .font(CursorProfile.Font.meta)
+                .foregroundStyle(.secondary)
         }
 
         if let credits = seat.credits, case .present(let balance, _, _) = credits {
@@ -98,21 +104,31 @@ struct SeatCardView: View {
             }
         }
 
-        if case .available(let spendRow, _, _, _, _) = projection.onDemand {
+        if case .available(let spendRow, _, _, _, let writesDisabled) = projection.onDemand {
+            let openEditor = {
+                model.presentOnDemandEditor(seatID: seat.seatID)
+            }
             switch spendRow {
             case .hidden:
-                EmptyView()
+                OnDemandSpendBar(
+                    amountText: "On-demand off",
+                    progressFraction: nil,
+                    showsTrack: false,
+                    action: writesDisabled ? nil : openEditor
+                )
             case .fixed(let amountText, let fraction):
                 OnDemandSpendBar(
                     amountText: amountText,
                     progressFraction: fraction,
-                    showsTrack: true
+                    showsTrack: true,
+                    action: writesDisabled ? nil : openEditor
                 )
             case .unlimited(let amountText):
                 OnDemandSpendBar(
                     amountText: amountText ?? "Unlimited",
                     progressFraction: nil,
-                    showsTrack: false
+                    showsTrack: false,
+                    action: writesDisabled ? nil : openEditor
                 )
             }
         }
@@ -127,9 +143,10 @@ private struct OnDemandSpendBar: View {
     let amountText: String
     let progressFraction: Double?
     let showsTrack: Bool
+    var action: (() -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        let bar = VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text("On-demand")
                     .font(CursorProfile.Font.meta)
@@ -145,6 +162,17 @@ private struct OnDemandSpendBar: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("On-demand \(amountText)")
+
+        if let action {
+            Button(action: action) {
+                bar
+            }
+            .buttonStyle(.plain)
+            .help("Edit on-demand")
+            .accessibilityHint("Edits on-demand")
+        } else {
+            bar
+        }
     }
 }
 

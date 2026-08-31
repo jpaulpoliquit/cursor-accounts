@@ -13,6 +13,9 @@ extension AppModel {
     /// Debounced refresh when Dashboard appears or becomes key. Refreshes cards + current chart scope.
     func refreshOnDashboardOpen() {
         dashboardVisible = true
+        DashboardWindowPresenter.adoptDockPresence()
+        prefetchSeatPictures()
+        hydrateSeatProfiles()
         openRefreshScheduler.schedule(.dashboard) { [weak self] surfaces in
             self?.performOpenRefresh(for: surfaces)
         }
@@ -20,6 +23,7 @@ extension AppModel {
 
     /// Dashboard closed or disappeared. Stops history warm and drops raw event months.
     func noteDashboardClosed() {
+        DashboardWindowPresenter.resignDockPresence()
         guard dashboardVisible else { return }
         dashboardVisible = false
         usageSeries.pauseBackgroundWork()

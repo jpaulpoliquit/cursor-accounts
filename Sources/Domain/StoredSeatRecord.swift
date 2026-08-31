@@ -8,6 +8,7 @@ public struct StoredSeatRecord: Sendable, Equatable {
     public let refresh: RefreshToken
     public let email: Email?
     public let displayName: DisplayName?
+    public let pictureURL: URL?
     public let expiresAt: Date?
     public let membershipType: String?
     public let subscriptionStatus: String?
@@ -21,6 +22,7 @@ public struct StoredSeatRecord: Sendable, Equatable {
         refresh: RefreshToken,
         email: Email?,
         displayName: DisplayName? = nil,
+        pictureURL: URL? = nil,
         expiresAt: Date?,
         membershipType: String?,
         subscriptionStatus: String?,
@@ -32,6 +34,7 @@ public struct StoredSeatRecord: Sendable, Equatable {
         self.refresh = refresh
         self.email = email
         self.displayName = displayName
+        self.pictureURL = pictureURL
         self.expiresAt = expiresAt
         self.membershipType = membershipType
         self.subscriptionStatus = subscriptionStatus
@@ -46,6 +49,7 @@ public struct StoredSeatRecord: Sendable, Equatable {
             auth: auth,
             email: email,
             displayName: displayName,
+            pictureURL: pictureURL,
             plan: plan,
             usage: usage,
             onDemand: nil,

@@ -7,6 +7,8 @@ public struct SeatSnapshot: Codable, Sendable, Equatable, Hashable, Identifiable
     public let auth: SeatAuthState
     public let email: Email?
     public let displayName: DisplayName?
+    /// Cursor profile photo when the desktop session or Keychain row still has it.
+    public let pictureURL: URL?
     public let plan: PlanInfo?
     public let usage: PeriodUsage?
     public let onDemand: OnDemandState?
@@ -18,6 +20,7 @@ public struct SeatSnapshot: Codable, Sendable, Equatable, Hashable, Identifiable
         auth: SeatAuthState,
         email: Email? = nil,
         displayName: DisplayName? = nil,
+        pictureURL: URL? = nil,
         plan: PlanInfo? = nil,
         usage: PeriodUsage? = nil,
         onDemand: OnDemandState? = nil,
@@ -27,6 +30,7 @@ public struct SeatSnapshot: Codable, Sendable, Equatable, Hashable, Identifiable
         self.auth = auth
         self.email = email
         self.displayName = displayName
+        self.pictureURL = pictureURL
         self.plan = plan
         self.usage = usage
         self.onDemand = onDemand
@@ -81,6 +85,6 @@ public struct AggregateSnapshot: Codable, Sendable, Equatable, Hashable {
     }
 
     public var menuBarLabel: String {
-        "MC · \(signedInCount)"
+        ProductName.display
     }
 }

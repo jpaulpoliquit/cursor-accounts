@@ -4,10 +4,16 @@ import SwiftUI
 struct DashboardAccountsPane: View {
     @Bindable var model: AppModel
     var surface: DashboardSeatSurface
-
+    @Environment(\.colorScheme) private var colorScheme
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            toolbar
+        VStack(alignment: .leading, spacing: 16) {
+            if showsConnectStatus {
+                DashboardConnectAccountRow(
+                    addAccount: model.presentation.addAccount,
+                    model: model
+                )
+            }
+            tableChrome
             switch model.accountLayout {
             case .table:
                 DashboardAccountTable(model: model)
@@ -17,32 +23,107 @@ struct DashboardAccountsPane: View {
         }
     }
 
-    private var toolbar: some View {
-        HStack(spacing: 10) {
-            if showsConnectStatus {
-                DashboardConnectAccountRow(
-                    addAccount: model.presentation.addAccount,
-                    model: model
-                )
+    private var tableChrome: some View {
+        HStack(alignment: .center, spacing: 12) {
+            if model.accountLayout == .table {
+                usageMetricPicker
+                    .fixedSize(horizontal: true, vertical: false)
             }
-            Spacer(minLength: 8)
+            filterField
             layoutSwitcher
+                .fixedSize(horizontal: true, vertical: false)
+            addAccountButton
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var usageMetricPicker: some View {
+        DashboardPillSegmentedControl(
+            selection: $model.accountUsageMetric,
+            options: AccountUsageMetric.allCases,
+            accessibilityName: "Usage metric"
+        ) { metric, _ in
+            Text(metric.title)
         }
     }
 
-    private var layoutSwitcher: some View {
-        Picker("Account view", selection: $model.accountLayout) {
-            ForEach(DashboardAccountLayout.allCases, id: \.self) { layout in
-                Image(systemName: layout.symbolName)
-                    .tag(layout)
-                    .help(layout.title)
-                    .accessibilityLabel(layout.accessibilityLabel)
+    private var filterField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField("Filter accounts", text: $model.accountFilter)
+                .textFieldStyle(.plain)
+                .font(CursorProfile.Font.table)
+                .focusable(true)
+            if !model.accountFilter.isEmpty {
+                Button {
+                    model.accountFilter = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear filter")
             }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .frame(width: 72)
-        .accessibilityLabel("Account view")
+        .padding(.horizontal, 12)
+        .frame(minWidth: 160, maxWidth: .infinity, minHeight: 32, alignment: .leading)
+        .background(CursorProfile.paper(colorScheme), in: Capsule(style: .continuous))
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(
+                    CursorProfile.hairline(colorScheme, highContrast: false),
+                    lineWidth: 1
+                )
+        }
+        .focusEffectDisabled()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Filter accounts")
+    }
+
+    private var layoutSwitcher: some View {
+        DashboardPillSegmentedControl(
+            selection: $model.accountLayout,
+            options: DashboardAccountLayout.allCases,
+            accessibilityName: "Account view"
+        ) { layout, _ in
+            Image(systemName: layout.symbolName)
+                .imageScale(.small)
+                .frame(width: 16, height: 16)
+                .help(layout.title)
+                .accessibilityLabel(layout.accessibilityLabel)
+        }
+    }
+
+    private var addAccountButton: some View {
+        Button {
+            model.connectAnotherAccount()
+        } label: {
+            Text(addTitle)
+        }
+        .buttonStyle(CursorProfilePrimaryButtonStyle())
+        .fixedSize(horizontal: true, vertical: false)
+        .layoutPriority(1)
+        .disabled(connectDisabled)
+        .help(model.presentation.addAccount.menuTitle)
+        .accessibilityLabel(model.presentation.addAccount.accessibilityLabel)
+    }
+
+    private var addTitle: String {
+        if connectDisabled {
+            return model.presentation.addAccount.menuTitle
+        }
+        return "Add Account"
+    }
+
+    private var connectDisabled: Bool {
+        if case .signingIn = model.presentation.addAccount {
+            return true
+        }
+        return false
     }
 
     private var showsConnectStatus: Bool {

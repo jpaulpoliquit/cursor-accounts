@@ -327,4 +327,39 @@ public struct ActivityInsights: Sendable, Equatable, Hashable, Codable {
         if minutes == 0 { return "\(hours)h" }
         return "\(hours)h \(minutes)m"
     }
+
+    /// Tokens for the focused seat vs the collective snapshot. Either side can be missing.
+    public func tokenHeadline(thisSeatID: SeatID?) -> (thisAccount: Int64?, allAccounts: Int64?) {
+        let thisAccount: Int64?
+        if let thisSeatID, let row = seatActivityTotals(seatID: thisSeatID) {
+            thisAccount = row.tokens
+        } else if case .account(let id) = scope, id == thisSeatID {
+            thisAccount = totalTokens
+        } else {
+            thisAccount = nil
+        }
+        let allAccounts: Int64?
+        switch scope {
+        case .allAccounts:
+            allAccounts = totalTokens
+        case .account:
+            allAccounts = nil
+        }
+        return (thisAccount, allAccounts)
+    }
+
+    /// Per-seat rollup from All Accounts day contributions. Empty when history has no seat slices.
+    public func seatActivityTotals(seatID: SeatID) -> (tokens: Int64, requests: Int)? {
+        var tokens: Int64 = 0
+        var requests = 0
+        var sawContribution = false
+        for day in days {
+            guard let row = day.contributions.first(where: { $0.seatID == seatID }) else { continue }
+            sawContribution = true
+            tokens += row.tokens
+            requests += row.requestCount
+        }
+        guard sawContribution else { return nil }
+        return (tokens, requests)
+    }
 }

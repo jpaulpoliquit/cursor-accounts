@@ -17,7 +17,7 @@ struct DashboardSortHeader: View {
                         .font(.system(size: 8, weight: .semibold))
                 }
             }
-            .font(CursorProfile.Font.statLabel)
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(isActive ? Color.primary : Color.secondary)
             .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .trailing)
             .contentShape(Rectangle())
@@ -49,14 +49,14 @@ struct DashboardPercentMeter: View {
                             geo.size.width * CGFloat(min(max(percent.unitFraction, 0), 1))
                         ) {
                             Capsule()
-                                .fill(Color.primary.opacity(colorScheme == .dark ? 0.40 : 0.22))
+                                .fill(Color.primary.opacity(colorScheme == .dark ? 0.55 : 0.34))
                                 .frame(width: width)
                         }
                     }
                 }
-                .frame(height: 4)
+                .frame(height: 7)
                 Text("\(Int(percent.percent.rounded()))%")
-                    .font(.system(size: 12, weight: .medium).monospacedDigit())
+                    .font(.system(size: 12, weight: .semibold).monospacedDigit())
                     .frame(width: 36, alignment: .trailing)
             }
             .accessibilityElement(children: .ignore)

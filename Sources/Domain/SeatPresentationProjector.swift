@@ -129,6 +129,8 @@ public enum SeatPresentationProjector {
             auth: auth,
             planName: plan?.name,
             planPrice: plan?.price,
+            planOwner: plan?.planOwner,
+            pictureURL: seat.pictureURL,
             resetDate: plan?.billingCycleEnd ?? usagePercents?.resetsAt ?? period?.usage.resetsAt,
             autoPercent: usagePercents?.autoPercentUsed,
             apiPercent: usagePercents?.apiPercentUsed,

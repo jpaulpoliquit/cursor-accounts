@@ -11,6 +11,7 @@ enum VerifyPresentationDump {
             model.identityPolicy = .maskEmail
         }
         let body = render(model: model)
+        probePictures(model: model)
         let url = URL(fileURLWithPath: path)
         do {
             try body.write(to: url, atomically: true, encoding: .utf8)
@@ -25,7 +26,7 @@ enum VerifyPresentationDump {
     static func scheduleIfRequested(model: AppModel) {
         guard outputPath() != nil else { return }
         dumpIfRequested(model: model)
-        for delay in [2.0, 6.0] {
+        for delay in [2.0, 6.0, 10.0] {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 dumpIfRequested(model: model)
             }
@@ -136,11 +137,14 @@ enum VerifyPresentationDump {
         let pill = seat.pill?.shortTitle ?? "nil"
         let plan = seat.planName ?? "nil"
         let email = seat.revealedEmail?.value ?? "nil"
+        let picture = seat.pictureURL?.host ?? "nil"
         return [
             "seat=\(seat.seatID.rawValue)",
             "label=\(seat.label.text)",
             "auth=\(seat.authTitle)",
             "plan=\(plan)",
+            "team=\(seat.isTeamAccount)",
+            "picture=\(picture)",
             "\(UsagePoolLabel.cursorModels.title)=\(auto)%",
             "\(UsagePoolLabel.otherModels.title)=\(api)%",
             "onDemand=\(onDemand)",
@@ -190,6 +194,47 @@ enum VerifyPresentationDump {
             return "settled"
         case .failed:
             return "failed"
+        }
+    }
+
+    private static func probePictures(model: AppModel) {
+        Task { @MainActor in
+            var lines: [String] = []
+            for seat in model.presentation.connectedAccounts {
+                guard let url = seat.pictureURL else {
+                    lines.append("\(seat.seatID.rawValue) none")
+                    continue
+                }
+                let fetch = ProfilePictureLoader.requestURL(for: url)
+                var request = URLRequest(url: fetch)
+                request.setValue(ProfilePictureLoader.userAgent, forHTTPHeaderField: "User-Agent")
+                request.setValue(
+                    "image/jpeg,image/png,image/webp,image/*;q=0.8,*/*;q=0.5",
+                    forHTTPHeaderField: "Accept"
+                )
+                let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                let signed = items.contains {
+                    ["s", "sig", "signature", "token"].contains($0.name.lowercased())
+                }
+                do {
+                    let (data, response) = try await URLSession.shared.data(for: request)
+                    let http = response as? HTTPURLResponse
+                    let type = http?.value(forHTTPHeaderField: "Content-Type") ?? "?"
+                    let painted = await ProfilePictureLoader.image(for: url) != nil
+                    lines.append(
+                        "\(seat.seatID.rawValue) host=\(url.host ?? "nil") signed=\(signed) status=\(http?.statusCode ?? -1) type=\(type) bytes=\(data.count) painted=\(painted)"
+                    )
+                } catch {
+                    lines.append(
+                        "\(seat.seatID.rawValue) host=\(url.host ?? "nil") signed=\(signed) error=\(error.localizedDescription)"
+                    )
+                }
+            }
+            try? lines.joined(separator: "\n").write(
+                to: URL(fileURLWithPath: "/tmp/mc-picture-probe.txt"),
+                atomically: true,
+                encoding: .utf8
+            )
         }
     }
 }

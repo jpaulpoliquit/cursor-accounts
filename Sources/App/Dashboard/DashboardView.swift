@@ -7,7 +7,6 @@ struct DashboardView: View {
 
     var body: some View {
         DashboardProfileColumnView(model: model, dashboardVisible: model.dashboardVisible)
-            .toolbar { toolbarContent }
             .background(
                 DashboardWindowAccessor(
                     title: windowTitle,
@@ -24,62 +23,20 @@ struct DashboardView: View {
             .animation(Motion.gentle(reduceMotion: reduceMotion), value: model.presentation.signedInCount)
             .animation(Motion.gentle(reduceMotion: reduceMotion), value: model.presentation.addAccount)
             .animation(Motion.gentle(reduceMotion: reduceMotion), value: model.presentation.bootstrapPhase)
+            .sheet(item: $model.onDemandEditorSeatID) { seatID in
+                if let seat = editorSeat(seatID) {
+                    OnDemandEditSheet(seat: seat, model: model)
+                }
+            }
     }
 
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        if #available(macOS 26.0, *) {
-            ToolbarItem(placement: .navigation) {
-                Text(connectedCopy)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .sharedBackgroundVisibility(.hidden)
-        } else {
-            ToolbarItem(placement: .navigation) {
-                Text(connectedCopy)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-        }
-
-        ToolbarItem(placement: .principal) {
-            DashboardProfileTabBar(selection: $model.dashboardTab)
-        }
-
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                model.connectAnotherAccount()
-            } label: {
-                Label(model.presentation.addAccount.menuTitle, systemImage: "plus")
-            }
-            .help(model.presentation.addAccount.menuTitle)
-            .disabled(connectDisabled)
-            .accessibilityLabel(model.presentation.addAccount.accessibilityLabel)
-        }
+    private func editorSeat(_ seatID: SeatID) -> SeatPresentation? {
+        model.presentation.connectedAccounts.first(where: { $0.seatID == seatID })
+            ?? model.presentation.seats.first(where: { $0.seatID == seatID })
     }
 
     private var windowTitle: String {
-        if let focused = model.presentation.focusedSeat,
-           focused.auth == .signedIn || focused.auth == .needsReauth {
-            return focused.dashboardTitle
-        }
-        return "Dashboard"
-    }
-
-    private var connectedCopy: String {
-        let count = model.presentation.signedInCount
-        if count == 0 {
-            return "No accounts connected"
-        }
-        return "\(count) connected"
-    }
-
-    private var connectDisabled: Bool {
-        if case .signingIn = model.presentation.addAccount {
-            return true
-        }
-        return false
+        model.dashboardTab.title
     }
 
     private var tabShortcuts: some View {

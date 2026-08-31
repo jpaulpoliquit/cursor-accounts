@@ -6,6 +6,7 @@ struct UsageModelCatalogView: View {
     let catalog: ModelPricingCatalog
     let timeZone: TimeZone
     var showsTitle: Bool = true
+    var group: DashboardModelGroup = .family
     @Binding var sort: DashboardModelSort
     @Binding var direction: DashboardSortDirection
     @Environment(\.colorScheme) private var colorScheme
@@ -14,12 +15,14 @@ struct UsageModelCatalogView: View {
         catalog: ModelPricingCatalog,
         timeZone: TimeZone,
         showsTitle: Bool = true,
+        group: DashboardModelGroup = .family,
         sort: Binding<DashboardModelSort>,
         direction: Binding<DashboardSortDirection>
     ) {
         self.catalog = catalog
         self.timeZone = timeZone
         self.showsTitle = showsTitle
+        self.group = group
         _sort = sort
         _direction = direction
     }
@@ -49,6 +52,15 @@ struct UsageModelCatalogView: View {
 
     private var rows: [ModelPricingRow] {
         DashboardModelOrdering.sorted(catalog.models, by: sort, direction: direction)
+    }
+
+    private var familySections: [ModelFamilySection] {
+        ActivityModelCatalog.sectionsByFamily(catalog.models).map { section in
+            ModelFamilySection(
+                family: section.family,
+                rows: DashboardModelOrdering.sorted(section.rows, by: sort, direction: direction)
+            )
+        }
     }
 
     private var totals: some View {
@@ -104,8 +116,17 @@ struct UsageModelCatalogView: View {
                     .padding(.leading, 14)
             }
 
-            ForEach(rows, id: \.modelIntent) { row in
-                modelRow(row)
+            if group == .family {
+                ForEach(familySections) { section in
+                    familyHeader(section)
+                    ForEach(section.rows, id: \.modelIntent) { row in
+                        modelRow(row)
+                    }
+                }
+            } else {
+                ForEach(rows, id: \.modelIntent) { row in
+                    modelRow(row)
+                }
             }
         }
         .background(CursorProfile.paper(colorScheme))
@@ -114,6 +135,28 @@ struct UsageModelCatalogView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(CursorProfile.hairline(colorScheme, highContrast: false), lineWidth: 1)
         }
+    }
+
+    private func familyHeader(_ section: ModelFamilySection) -> some View {
+        HStack(spacing: 8) {
+            Text(section.family.title)
+                .font(.system(size: 13, weight: .semibold))
+            Text("\(section.rows.count)")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(CursorProfile.hairline(colorScheme, highContrast: false))
+                .frame(height: 1)
+                .padding(.leading, 14)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityLabel("\(section.family.title), \(section.rows.count)")
     }
 
     private func modelRow(_ row: ModelPricingRow) -> some View {

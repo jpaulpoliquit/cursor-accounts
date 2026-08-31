@@ -8,6 +8,14 @@ final class JWTClaimsTests: XCTestCase {
         let claims = try XCTUnwrap(JWTClaims.decode(jwt: jwt))
         XCTAssertEqual(claims.subject, "abc-123")
         XCTAssertEqual(claims.expiresAt, Date(timeIntervalSince1970: 1_700_000_000))
+        XCTAssertNil(claims.pictureURL)
+    }
+
+    func testDecodeReadsHTTPSPicture() throws {
+        let payload = #"{"sub":"abc-123","picture":"https://example.com/me.png"}"#
+        let jwt = makeUnsignedJWT(payloadJSON: payload)
+        let claims = try XCTUnwrap(JWTClaims.decode(jwt: jwt))
+        XCTAssertEqual(claims.pictureURL?.absoluteString, "https://example.com/me.png")
     }
 
     func testIdentityPrefersSubjectOverEmail() throws {

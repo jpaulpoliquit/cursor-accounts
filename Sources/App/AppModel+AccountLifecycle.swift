@@ -40,6 +40,7 @@ extension AppModel {
                 auth: seat.auth,
                 email: seat.email,
                 displayName: seat.displayName,
+                pictureURL: seat.pictureURL,
                 plan: seat.plan,
                 usage: seat.usage,
                 onDemand: seat.onDemand,
@@ -56,6 +57,7 @@ extension AppModel {
             reloadShellFromKeychain()
             refreshCardsIfPolicyAllows(trigger: .bootstrap)
         }
+        updates.quietRecheckIfDue()
     }
 
     func acknowledgeIDESwitch() {

@@ -1,5 +1,25 @@
 import Foundation
 
+/// Newton-style Models table grouping. Trigger copy matches admin “No grouping” / “By …”.
+public enum DashboardModelGroup: String, Sendable, CaseIterable, Equatable, Hashable {
+    case none
+    case family
+
+    public var menuTitle: String {
+        switch self {
+        case .none: "No grouping"
+        case .family: "Family"
+        }
+    }
+
+    public var triggerLabel: String {
+        switch self {
+        case .none: "No grouping"
+        case .family: "By family"
+        }
+    }
+}
+
 public enum DashboardModelSort: String, Sendable, Equatable, CaseIterable {
     case name
     case requests

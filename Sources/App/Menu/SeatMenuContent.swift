@@ -27,7 +27,7 @@ struct SeatMenuContent: View {
             model.focus(seatID: seat.seatID)
         } label: {
             HStack {
-                Text(seat.isFocused ? "Shown in header" : "Show in header")
+                Text(seat.isFocused ? "Shown in Dashboard" : "Show in Dashboard")
                 if seat.isFocused {
                     Spacer()
                     Text("✓")

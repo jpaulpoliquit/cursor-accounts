@@ -48,6 +48,7 @@ public struct CursorDesktopSessionSource: Sendable {
             refresh: refresh,
             email: email,
             displayName: profile?.displayName,
+            pictureURL: profile?.pictureURL ?? JWTClaims.decode(jwt: accessRaw)?.pictureURL,
             membershipType: rows["cursorAuth/stripeMembershipType"],
             subscriptionStatus: rows["cursorAuth/stripeSubscriptionStatus"],
             userDataDir: userDataDir

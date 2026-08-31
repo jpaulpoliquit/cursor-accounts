@@ -21,8 +21,7 @@ public struct CachedScopedProfile: Sendable, Equatable {
         }
         let rawName = object["displayName"] as? String
         let displayName = rawName.flatMap(DisplayName.init)
-        let pictureRaw = (object["pictureUrl"] as? String) ?? (object["picture"] as? String)
-        let pictureURL = pictureRaw.flatMap { URL(string: $0) }
+        let pictureURL = ProfilePictureURL.parse(from: object)
         if displayName == nil, pictureURL == nil {
             return CachedScopedProfile(displayName: nil, pictureURL: nil)
         }

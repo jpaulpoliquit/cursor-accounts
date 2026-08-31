@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Build MultiCursor (Release) and copy it into /Applications (or $INSTALL_DIR).
+# Build Cursor Accounts (Release) and copy it into /Applications (or $INSTALL_DIR).
 # Does not leave the user in DerivedData.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-APP_NAME="MultiCursor.app"
+PRODUCT_DISPLAY="Cursor Accounts"
+APP_NAME="Cursor Accounts.app"
+EXECUTABLE="Cursor Accounts"
 SCHEME="CursorBar"
 CONFIGURATION="Release"
 INSTALL_DIR="${INSTALL_DIR:-/Applications}"
@@ -35,6 +37,56 @@ need_xcodegen() {
   return 1
 }
 
+plist_string() {
+  /usr/libexec/PlistBuddy -c "Print :${2}" "${1}/Contents/Info.plist" 2>/dev/null || true
+}
+
+verify_product_app() {
+  local app="$1"
+  [[ -d "${app}" ]] || fail "missing ${app}"
+  [[ -x "${app}/Contents/MacOS/${EXECUTABLE}" ]] || fail "${EXECUTABLE} binary missing in ${app}"
+  local name display bid
+  name="$(plist_string "${app}" CFBundleName)"
+  display="$(plist_string "${app}" CFBundleDisplayName)"
+  bid="$(plist_string "${app}" CFBundleIdentifier)"
+  [[ "${name}" == "${PRODUCT_DISPLAY}" ]] || fail "CFBundleName is '${name}', expected ${PRODUCT_DISPLAY}"
+  [[ "${display}" == "${PRODUCT_DISPLAY}" ]] || fail "CFBundleDisplayName is '${display}', expected ${PRODUCT_DISPLAY}"
+  [[ "${bid}" == "app.cursorbar" ]] || fail "bundle id is '${bid}'; must stay app.cursorbar"
+}
+
+quit_matching() {
+  local pattern="$1"
+  local apple_name="$2"
+  if pgrep -f "${pattern}" >/dev/null; then
+    echo "+ quitting ${apple_name}"
+    osascript -e "tell application \"${apple_name}\" to quit" >/dev/null 2>&1 || true
+    for _ in 1 2 3 4 5 6 7 8; do
+      pgrep -f "${pattern}" >/dev/null || return 0
+      sleep 0.25
+    done
+    pkill -f "${pattern}" 2>/dev/null || true
+  fi
+}
+
+quit_if_running() {
+  quit_matching "${INSTALL_DIR}/${APP_NAME}/Contents/MacOS/${EXECUTABLE}" "${PRODUCT_DISPLAY}"
+  quit_matching "${INSTALL_DIR}/MultiCursor.app/Contents/MacOS/MultiCursor" 'MultiCursor'
+}
+
+retire_legacy_app() {
+  local name
+  for name in "MultiCursor.app" "CursorBar.app"; do
+    local legacy="${INSTALL_DIR}/${name}"
+    [[ -d "${legacy}" ]] || continue
+    local bid
+    bid="$(plist_string "${legacy}" CFBundleIdentifier)"
+    if [[ "${bid}" == "app.cursorbar" ]]; then
+      echo "+ removing leftover ${legacy} (same bundle id as ${PRODUCT_DISPLAY})"
+      rm -rf "${legacy}"
+    fi
+  done
+}
+
 if need_xcodegen; then
   command -v xcodegen >/dev/null || fail "xcodegen required (brew install xcodegen)"
   xcodegen generate
@@ -57,8 +109,12 @@ if [[ "${status}" -ne 0 ]]; then
   fail "xcodebuild ${CONFIGURATION} failed (see ${LOG})"
 fi
 
-APP="$(find "${DERIVED}/Build/Products" -name "${APP_NAME}" -type d | head -1)"
+APP="$(find "${DERIVED}/Build/Products/${CONFIGURATION}" -name "${APP_NAME}" -type d | head -1)"
 [[ -n "${APP}" && -d "${APP}" ]] || fail "${APP_NAME} not found after build (see ${LOG})"
+verify_product_app "${APP}"
+
+quit_if_running
+retire_legacy_app
 
 DEST="${INSTALL_DIR}/${APP_NAME}"
 mkdir -p "${INSTALL_DIR}" || fail "cannot create ${INSTALL_DIR}"
@@ -66,5 +122,9 @@ echo "+ ditto ${APP} ${DEST}"
 ditto "${APP}" "${DEST}" || fail "ditto into ${DEST} failed"
 xattr -cr "${DEST}" || fail "xattr -cr ${DEST} failed"
 
-[[ -d "${DEST}" ]] || fail "install did not produce ${DEST}"
+verify_product_app "${DEST}"
 echo "Installed ${DEST}"
+echo "  name: $(plist_string "${DEST}" CFBundleName)"
+echo "  display: $(plist_string "${DEST}" CFBundleDisplayName)"
+echo "  id: $(plist_string "${DEST}" CFBundleIdentifier)"
+echo "  version: $(plist_string "${DEST}" CFBundleShortVersionString)"

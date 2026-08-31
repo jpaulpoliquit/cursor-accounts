@@ -1,4 +1,5 @@
 import AppKit
+import CursorBarDomain
 import SwiftUI
 
 /// Stable Dashboard window identity for AppKit raise/reuse.
@@ -15,29 +16,65 @@ enum DashboardWindowSelection {
         let isMiniaturized: Bool
     }
 
-    /// Prefers the stable identifier, then titled "Dashboard".
+    /// Prefers the stable identifier, then a known dashboard window title.
     static func index(in candidates: [Candidate]) -> Int? {
         if let indexed = candidates.firstIndex(where: {
             $0.identifier == DashboardWindowIdentity.itemIdentifier.rawValue
         }) {
             return indexed
         }
-        return candidates.firstIndex(where: { $0.title == "Dashboard" })
+        return candidates.firstIndex(where: { Self.isDashboardTitle($0.title) })
+    }
+
+    static func isDashboardTitle(_ title: String?) -> Bool {
+        switch title {
+        case "Accounts", "Models", "Usage", "Dashboard", ProductName.display, "MultiCursor":
+            return true
+        default:
+            return false
+        }
     }
 }
 
 /// Shared Open Dashboard command. Menu and verify both raise through this path.
 @MainActor
 enum DashboardWindowPresenter {
+    private static var registeredOpenWindow: OpenWindowAction?
+
+    static func registerOpenWindow(_ openWindow: OpenWindowAction) {
+        registeredOpenWindow = openWindow
+    }
+
     static func open(using openWindow: OpenWindowAction) {
+        registerOpenWindow(openWindow)
+        adoptDockPresence()
         openWindow(id: DashboardWindowIdentity.sceneID)
         raiseExistingOrNextRunLoop()
     }
 
+    /// Dock click / reopen while Cursor Accounts is already running.
+    static func openFromReopen() {
+        AppModel.sharedForVerify?.refreshOnDashboardOpen()
+        if let registeredOpenWindow {
+            open(using: registeredOpenWindow)
+        } else {
+            adoptDockPresence()
+            raiseExistingOrNextRunLoop()
+        }
+    }
+
+    static func adoptDockPresence() {
+        NSApp.setActivationPolicy(.regular)
+    }
+
+    static func resignDockPresence() {
+        NSApp.setActivationPolicy(.accessory)
+    }
+
     /// Verify / `--open-dashboard` path when the SwiftUI scene is not used.
-    static func presentHosted(_ window: NSWindow) {
+    static func presentHosted(_ window: NSWindow, title: String = "Accounts") {
         window.identifier = DashboardWindowIdentity.itemIdentifier
-        window.title = "Dashboard"
+        window.title = title
         window.hidesOnDeactivate = false
         LiquidGlass.applyWindowChrome(window)
         raise(window)
@@ -80,11 +117,13 @@ enum DashboardWindowPresenter {
 
     static func dashboardWindowCount(in windows: [NSWindow]) -> Int {
         windows.filter { window in
-            window.identifier == DashboardWindowIdentity.itemIdentifier || window.title == "Dashboard"
+            window.identifier == DashboardWindowIdentity.itemIdentifier
+                || DashboardWindowSelection.isDashboardTitle(window.title)
         }.count
     }
 
     private static func activateApp() {
+        adoptDockPresence()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -92,38 +131,21 @@ enum DashboardWindowPresenter {
         if window.isMiniaturized {
             window.deminiaturize(nil)
         }
-        window.hidesOnDeactivate = false
-        let verifyOpen = CommandLine.arguments.contains("--open-dashboard")
-        // Pulse above normal apps so LSUIElement can surface without a Dock icon.
-        // Verify launches keep floating so Cursor IDE focus steal cannot hide the dashboard.
-        window.level = .floating
-        window.collectionBehavior.insert(.moveToActiveSpace)
-        if verifyOpen {
-            NSApp.setActivationPolicy(.regular)
-        }
-        activateApp()
-        window.orderFrontRegardless()
+        applyNormalWindowStacking(window)
+        adoptDockPresence()
         window.makeKeyAndOrderFront(nil)
         activateApp()
-        DispatchQueue.main.async {
-            if !verifyOpen {
-                window.level = .normal
-            }
-            window.makeKeyAndOrderFront(nil)
-            activateApp()
-            writeKeyMarker(for: window)
-        }
-        // Second pulse: LSUIElement activation is racy against the host IDE.
-        if verifyOpen {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                window.level = .floating
-                activateApp()
-                window.orderFrontRegardless()
-                window.makeKeyAndOrderFront(nil)
-                writeKeyMarker(for: window)
-            }
-        }
         writeKeyMarker(for: window)
+    }
+
+    /// Same stacking as a regular Mac app window: can go behind other apps,
+    /// stays on the current Space, does not float or click through.
+    static func applyNormalWindowStacking(_ window: NSWindow) {
+        window.level = .normal
+        window.hidesOnDeactivate = false
+        window.collectionBehavior = [.managed, .fullScreenAuxiliary]
+        window.ignoresMouseEvents = false
+        window.alphaValue = 1
     }
 
     private static func writeKeyMarker(for window: NSWindow) {
@@ -136,7 +158,7 @@ enum DashboardWindowPresenter {
 
 /// Tags the SwiftUI Dashboard NSWindow with a stable identifier once attached.
 struct DashboardWindowAccessor: NSViewRepresentable {
-    var title: String = "Dashboard"
+    var title: String = "Accounts"
     var onActivate: (() -> Void)?
     var onClose: (() -> Void)?
 
@@ -144,18 +166,19 @@ struct DashboardWindowAccessor: NSViewRepresentable {
         Coordinator(onActivate: onActivate, onClose: onClose)
     }
 
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        DispatchQueue.main.async {
-            Self.tag(view.window, title: title, coordinator: context.coordinator)
-        }
+    func makeNSView(context: Context) -> DashboardChromeClearanceView {
+        let view = DashboardChromeClearanceView(frame: .zero)
+        view.title = title
+        view.coordinator = context.coordinator
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: DashboardChromeClearanceView, context: Context) {
         context.coordinator.onActivate = onActivate
         context.coordinator.onClose = onClose
-        Self.tag(nsView.window, title: title, coordinator: context.coordinator)
+        nsView.title = title
+        nsView.coordinator = context.coordinator
+        nsView.applyChrome()
     }
 
     final class Coordinator {
@@ -204,12 +227,35 @@ struct DashboardWindowAccessor: NSViewRepresentable {
         }
     }
 
-    private static func tag(_ window: NSWindow?, title: String, coordinator: Coordinator) {
+}
+
+/// Applies dashboard window chrome once the SwiftUI view is attached.
+final class DashboardChromeClearanceView: NSView {
+    var title: String = "Accounts"
+    var coordinator: DashboardWindowAccessor.Coordinator?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        applyChrome()
+        DispatchQueue.main.async { [weak self] in self?.applyChrome() }
+    }
+
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        applyChrome()
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+
+    func applyChrome() {
         guard let window else { return }
         window.identifier = DashboardWindowIdentity.itemIdentifier
-        window.title = title.isEmpty ? "Dashboard" : title
+        window.title = title.isEmpty ? "Accounts" : title
         window.hidesOnDeactivate = false
+        DashboardWindowPresenter.applyNormalWindowStacking(window)
         LiquidGlass.applyWindowChrome(window)
-        coordinator.observeKey(for: window)
+        coordinator?.observeKey(for: window)
     }
 }

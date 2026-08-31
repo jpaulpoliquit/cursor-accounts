@@ -158,6 +158,50 @@ final class UsageActivityHeatmapTests: XCTestCase {
         XCTAssertTrue(ids.contains("2026-02-20"))
     }
 
+    func testMonthLabelsUseNarrowInitialsLikeCursorProfile() {
+        let days = [
+            DayActivity(
+                day: ActivityDayKey(year: 2026, month: 1, day: 10),
+                requestCount: 1,
+                tokens: 1,
+                spanMs: 0,
+                estimatedActiveMs: 0
+            ),
+            DayActivity(
+                day: ActivityDayKey(year: 2026, month: 6, day: 10),
+                requestCount: 1,
+                tokens: 1,
+                spanMs: 0,
+                estimatedActiveMs: 0
+            ),
+            DayActivity(
+                day: ActivityDayKey(year: 2026, month: 7, day: 10),
+                requestCount: 2,
+                tokens: 2,
+                spanMs: 0,
+                estimatedActiveMs: 0
+            ),
+        ]
+        let range = UsageRange.allTime(
+            start: UsageDayKey(year: 2026, month: 1, day: 1),
+            end: UsageDayKey(year: 2026, month: 7, day: 31)
+        )
+        let grid = UsageActivityHeatmapView.buildGrid(days: days, range: range, timeZone: tz, now: now)
+        let labels = grid.map(\.monthLabel).filter { !$0.isEmpty }
+        XCTAssertTrue(labels.allSatisfy { $0.count == 1 })
+        XCTAssertTrue(labels.contains("J"))
+        XCTAssertGreaterThanOrEqual(labels.filter { $0 == "J" }.count, 2)
+    }
+
+    func testWeekdayAbbreviationsAreMondayFirst() {
+        let labels = UsageActivityHeatmapView.weekdayAbbreviations(
+            timeZone: tz,
+            locale: Locale(identifier: "en_US")
+        )
+        XCTAssertEqual(labels, ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+        XCTAssertEqual(UsageActivityHeatmapView.weekdayGutterLabels(), ["M", "", "W", "", "F", "", ""])
+    }
+
     func testAllTimeLongerThanEightyWeeksIsCapped() {
         let start = ActivityDayKey(year: 2024, month: 1, day: 10)
         let end = ActivityDayKey(year: 2026, month: 8, day: 14)

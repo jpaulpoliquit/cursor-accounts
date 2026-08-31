@@ -3,6 +3,8 @@ import SwiftUI
 
 struct DashboardUsageStatsRow: View {
     let insights: ActivityInsights
+    let thisSeatID: SeatID?
+    let thisSeatTitle: String
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -21,21 +23,28 @@ struct DashboardUsageStatsRow: View {
 
     @ViewBuilder
     private var stats: some View {
+        let headline = insights.tokenHeadline(thisSeatID: thisSeatID)
+        CursorProfileStat(
+            label: "Tokens · this account",
+            value: compact(headline.thisAccount)
+        )
+        .accessibilityHint(thisSeatTitle)
+        CursorProfileStat(
+            label: "Tokens · all accounts",
+            value: compact(headline.allAccounts)
+        )
         CursorProfileStat(
             label: "Requests",
             value: TokenCountFormat.compact(Int64(insights.totalRequests))
         )
         CursorProfileStat(
-            label: "Tokens",
-            value: TokenCountFormat.compact(insights.totalTokens)
-        )
-        CursorProfileStat(
             label: "Active days",
             value: "\(insights.activeDayCount)"
         )
-        CursorProfileStat(
-            label: "Usage value",
-            value: ActivityCostSemantics.formatCents(insights.money.usageValueCents)
-        )
+    }
+
+    private func compact(_ tokens: Int64?) -> String {
+        guard let tokens else { return "—" }
+        return TokenCountFormat.compact(tokens)
     }
 }

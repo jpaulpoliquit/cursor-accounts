@@ -250,6 +250,7 @@ public actor AuthEngine {
             refresh: tokens.refresh,
             email: record.email,
             displayName: record.displayName,
+            pictureURL: claims?.pictureURL ?? record.pictureURL,
             expiresAt: claims?.expiresAt ?? record.expiresAt,
             membershipType: record.membershipType,
             subscriptionStatus: record.subscriptionStatus,

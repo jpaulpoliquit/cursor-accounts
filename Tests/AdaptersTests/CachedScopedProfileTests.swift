@@ -12,6 +12,12 @@ final class CachedScopedProfileTests: XCTestCase {
         XCTAssertEqual(profile?.pictureURL?.absoluteString, "https://example.com/a.png")
     }
 
+    func testParsesNestedUserPicture() {
+        let json = #"{"user":{"picture":"https://example.com/nested.png"}}"#
+        let profile = CachedScopedProfile.parse(jsonText: json)
+        XCTAssertEqual(profile?.pictureURL?.absoluteString, "https://example.com/nested.png")
+    }
+
     func testRejectsEmailShapedDisplayName() {
         let json = #"{"displayName":"a@b.com"}"#
         let profile = CachedScopedProfile.parse(jsonText: json)

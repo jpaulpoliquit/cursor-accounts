@@ -63,6 +63,34 @@ final class ConfirmationCommandCoordinatorTests: XCTestCase {
         XCTAssertEqual(gate.seenLabels.count, 3)
         XCTAssertTrue(gate.seenLabels.allSatisfy { $0.hasPrefix("label-") })
     }
+
+    func testApplyConfirmedOnDemandSkipsGate() async {
+        let gate = FakeGate(signOut: false, off: false, unlimited: false, fixed: nil)
+        var setModes: [(SeatID, OnDemandMode)] = []
+        let coordinator = ConfirmationCommandCoordinator(gate: gate)
+        coordinator.configure(
+            currentOnDemandMode: { _ in .off },
+            policyForSeat: { _ in nil },
+            accountLabel: { _ in "john 5" },
+            performSignOut: { _ in },
+            performSetOnDemand: { seatID, mode in setModes.append((seatID, mode)) }
+        )
+
+        coordinator.applyConfirmedOnDemand(seatID: .seat2, mode: .off)
+        coordinator.applyConfirmedOnDemand(
+            seatID: .seat2,
+            mode: .fixed(PositiveDollars(190)!)
+        )
+
+        for _ in 0..<20 {
+            if setModes.count == 1 { break }
+            await Task.yield()
+        }
+
+        XCTAssertEqual(coordinator.setOnDemandInvocations, 1)
+        XCTAssertEqual(setModes.map(\.1), [.fixed(PositiveDollars(190)!)])
+        XCTAssertTrue(gate.seenLabels.isEmpty)
+    }
 }
 
 @MainActor

@@ -36,6 +36,7 @@ public struct ActivityPeriodInspection: Sendable, Equatable, Hashable {
     public let spanMs: Int64
     public let estimatedActiveMs: Int64
     public let contributionLabels: [String]
+    public let isMonthBucket: Bool
 
     public init(
         label: String,
@@ -46,7 +47,8 @@ public struct ActivityPeriodInspection: Sendable, Equatable, Hashable {
         lastRequestMs: Int64?,
         spanMs: Int64,
         estimatedActiveMs: Int64,
-        contributionLabels: [String] = []
+        contributionLabels: [String] = [],
+        isMonthBucket: Bool = false
     ) {
         self.label = label
         self.accessibilityDate = accessibilityDate
@@ -57,6 +59,7 @@ public struct ActivityPeriodInspection: Sendable, Equatable, Hashable {
         self.spanMs = spanMs
         self.estimatedActiveMs = estimatedActiveMs
         self.contributionLabels = contributionLabels
+        self.isMonthBucket = isMonthBucket
     }
 
     public func accessibilityLabel(timeZone: TimeZone) -> String {
@@ -64,10 +67,9 @@ public struct ActivityPeriodInspection: Sendable, Equatable, Hashable {
             accessibilityDate,
             "\(requestCount) requests",
             "\(TokenCountFormat.accessibility(tokens)) tokens",
-            "daily span \(ActivityInsights.durationAccessibility(spanMs))",
             "estimated agent-active \(ActivityInsights.durationAccessibility(estimatedActiveMs))",
         ]
-        if let first = firstRequestMs, let last = lastRequestMs {
+        if !isMonthBucket, let first = firstRequestMs, let last = lastRequestMs {
             parts.append("first \(Self.clock(first, timeZone: timeZone))")
             parts.append("last \(Self.clock(last, timeZone: timeZone))")
         }
@@ -75,24 +77,27 @@ public struct ActivityPeriodInspection: Sendable, Equatable, Hashable {
         return parts.joined(separator: ", ")
     }
 
-    public func tooltipLines(timeZone: TimeZone, idleGap: IdleGapPolicy = .thirtyMinutes) -> [String] {
+    public func tooltipLines(timeZone: TimeZone, idleGap _: IdleGapPolicy = .thirtyMinutes) -> [String] {
         var lines = [
             accessibilityDate,
             "\(requestCount) requests · \(TokenCountFormat.compact(tokens)) tokens",
         ]
+        if isMonthBucket {
+            if estimatedActiveMs > 0 {
+                lines.append("Est. active \(ActivityInsights.durationCompact(estimatedActiveMs))")
+            }
+            return lines
+        }
         if let first = firstRequestMs, let last = lastRequestMs {
             lines.append(
                 "First \(Self.clock(first, timeZone: timeZone)) → Last \(Self.clock(last, timeZone: timeZone))"
             )
         }
-        if requestCount > 1 {
-            lines.append("Daily span \(ActivityInsights.durationCompact(spanMs))")
+        if requestCount > 1, estimatedActiveMs > 0 {
             lines.append("Est. active \(ActivityInsights.durationCompact(estimatedActiveMs))")
-            lines.append(idleGap.methodologyCopy)
         } else if requestCount == 1 {
-            lines.append("Single request — no span")
+            lines.append("Single request")
         }
-        lines.append(contentsOf: contributionLabels)
         return lines
     }
 
@@ -165,7 +170,8 @@ public struct ActivityInspectionIndex: Sendable, Equatable {
                     contributionLabels: Self.contributionLines(
                         day?.contributions ?? [],
                         accountLabels: accountLabels
-                    )
+                    ),
+                    isMonthBucket: true
                 )
             }
         } else {
@@ -200,9 +206,8 @@ public struct ActivityInspectionIndex: Sendable, Equatable {
     }
 
     public func period(nearestLabel hint: String?) -> ActivityPeriodInspection? {
-        guard let hint, !periods.isEmpty else { return periods.first }
-        if let exact = periods.first(where: { $0.label == hint }) { return exact }
-        return periods.first
+        guard let hint, !periods.isEmpty else { return nil }
+        return periods.first(where: { $0.label == hint })
     }
 
     private static func contributionLines(
@@ -211,6 +216,7 @@ public struct ActivityInspectionIndex: Sendable, Equatable {
     ) -> [String] {
         guard !contributions.isEmpty, !accountLabels.isEmpty else { return [] }
         return contributions
+            .filter { $0.requestCount > 0 }
             .sorted { $0.seatID.rawValue < $1.seatID.rawValue }
             .compactMap { row in
                 guard let label = accountLabels[row.seatID] else { return nil }

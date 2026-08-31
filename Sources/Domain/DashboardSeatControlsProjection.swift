@@ -50,6 +50,14 @@ public struct DashboardSeatControlsProjection: Sendable, Equatable, Hashable {
     /// Compatibility for older call sites that only checked sign-out affordance.
     public var showsSignOut: Bool { showsAccountActionsMenu }
 
+    /// Signed-in seats can open the editor unless a write is already in flight.
+    public var canPresentOnDemandEditor: Bool {
+        if case .available(_, _, _, _, let writesDisabled) = onDemand {
+            return !writesDisabled
+        }
+        return false
+    }
+
     public static func project(
         seat: SeatPresentation,
         hardLimitPhase: SetHardLimitPhase

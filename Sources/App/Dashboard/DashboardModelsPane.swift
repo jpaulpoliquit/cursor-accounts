@@ -7,9 +7,16 @@ struct DashboardModelsPane: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: CursorProfile.sectionSpacing) {
-            if dashboardVisible {
+            HStack(alignment: .center, spacing: 12) {
                 UsageRangeControls(coordinator: model.usageSeries, showsScope: true)
+                DashboardGroupBySelect(selection: $model.modelGroup)
+            }
+            if dashboardVisible {
                 catalog
+            } else {
+                Text("Open the dashboard to load model usage.")
+                    .font(CursorProfile.Font.meta)
+                    .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -22,6 +29,7 @@ struct DashboardModelsPane: View {
                 catalog: insights.modelCatalog,
                 timeZone: TimeZone(identifier: insights.timeZoneIdentifier) ?? .current,
                 showsTitle: false,
+                group: model.modelGroup,
                 sort: $model.modelSort,
                 direction: $model.modelSortDirection
             )
@@ -43,5 +51,50 @@ struct DashboardModelsPane: View {
         case .settled:
             return "No model activity in this range."
         }
+    }
+}
+
+/// Newton admin “Group by” field: label + menu trigger, not a checkbox.
+private struct DashboardGroupBySelect: View {
+    @Binding var selection: DashboardModelGroup
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("Group by")
+                .font(CursorProfile.Font.table)
+                .foregroundStyle(.secondary)
+            Menu {
+                Picker("Group by", selection: $selection) {
+                    ForEach(DashboardModelGroup.allCases, id: \.self) { option in
+                        Text(option.menuTitle).tag(option)
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(selection.triggerLabel)
+                        .font(CursorProfile.Font.table)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .frame(minHeight: 32)
+                .background(CursorProfile.paper(colorScheme), in: Capsule(style: .continuous))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(
+                            CursorProfile.hairline(colorScheme, highContrast: false),
+                            lineWidth: 1
+                        )
+                }
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Group by")
+        .accessibilityValue(selection.triggerLabel)
     }
 }

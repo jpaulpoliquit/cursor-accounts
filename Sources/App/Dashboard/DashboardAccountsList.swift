@@ -15,13 +15,24 @@ struct DashboardAccountsList: View {
             }
         }()
         VStack(alignment: .leading, spacing: spacing) {
-            ForEach(model.presentation.connectedAccounts) { seat in
-                SeatCardView(
-                    seat: seat,
-                    hardLimitPhase: model.presentation.setHardLimitPhase,
-                    model: model,
-                    surface: surface
-                )
+            let listing = DashboardAccountFilter.Listing.make(
+                seats: model.presentation.connectedAccounts,
+                query: model.accountFilter
+            )
+            if let empty = listing.emptyReason {
+                Text(empty.message)
+                    .font(CursorProfile.Font.table)
+                    .foregroundStyle(.secondary)
+                    .padding(surface == .card ? 0 : 20)
+            } else {
+                ForEach(listing.visible) { seat in
+                    SeatCardView(
+                        seat: seat,
+                        hardLimitPhase: model.presentation.setHardLimitPhase,
+                        model: model,
+                        surface: surface
+                    )
+                }
             }
         }
     }

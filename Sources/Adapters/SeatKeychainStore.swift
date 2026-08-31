@@ -149,6 +149,7 @@ public struct SeatKeychainStore: Sendable {
             refresh: record.refresh.rawValue,
             email: record.email?.value,
             displayName: record.displayName?.value,
+            pictureURL: record.pictureURL?.absoluteString,
             expiresAt: record.expiresAt,
             membershipType: record.membershipType,
             subscriptionStatus: record.subscriptionStatus,
@@ -181,6 +182,7 @@ public struct SeatKeychainStore: Sendable {
             refresh: refresh,
             email: payload.email.flatMap(Email.init),
             displayName: payload.displayName.flatMap(DisplayName.init),
+            pictureURL: ProfilePictureURL.parse(payload.pictureURL),
             expiresAt: payload.expiresAt,
             membershipType: payload.membershipType,
             subscriptionStatus: payload.subscriptionStatus,
@@ -195,6 +197,7 @@ private struct KeychainPayload: Codable, Sendable {
     var refresh: String
     var email: String?
     var displayName: String?
+    var pictureURL: String?
     var expiresAt: Date?
     var membershipType: String?
     var subscriptionStatus: String?

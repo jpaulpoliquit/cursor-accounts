@@ -2,6 +2,13 @@ import CursorBarDomain
 import XCTest
 
 final class DashboardModelOrderingTests: XCTestCase {
+    func testGroupByTriggerMatchesNewtonCopy() {
+        XCTAssertEqual(DashboardModelGroup.none.menuTitle, "No grouping")
+        XCTAssertEqual(DashboardModelGroup.none.triggerLabel, "No grouping")
+        XCTAssertEqual(DashboardModelGroup.family.menuTitle, "Family")
+        XCTAssertEqual(DashboardModelGroup.family.triggerLabel, "By family")
+    }
+
     func testTokensDescendingPutsLargestFirst() {
         let small = row(name: "A", tokens: 10, requests: 4, value: 100, charged: 20, rate: 5)
         let large = row(name: "B", tokens: 90, requests: 2, value: 50, charged: 10, rate: 8)

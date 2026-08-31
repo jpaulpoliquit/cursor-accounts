@@ -69,6 +69,11 @@ final class ConfirmationCommandCoordinator {
             accountLabel: accountLabel(seatID),
             policy: policyForSeat(seatID)
         ) else { return }
+        applyConfirmedOnDemand(seatID: seatID, mode: mode)
+    }
+
+    /// Dashboard editor already collected Off / Fixed / Unlimited. Do not stack another prompt.
+    func applyConfirmedOnDemand(seatID: SeatID, mode: OnDemandMode) {
         if currentOnDemandMode(seatID) == mode { return }
         setOnDemandInvocations += 1
         Task { await performSetOnDemand(seatID, mode) }

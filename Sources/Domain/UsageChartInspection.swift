@@ -105,6 +105,20 @@ public struct UsageDayInspection: Sendable, Equatable, Hashable {
         }
     }
 
+    /// Hover list: drop zero rows, and skip a single 100% row (the title already says the total).
+    public func tooltipContributions(metric: UsageMetric) -> [UsageDayContributionRow] {
+        let rows = contributions.filter { row in
+            switch metric {
+            case .tokens:
+                return row.tokens > 0
+            case .costCents:
+                return row.costUnavailable || (row.spendCents ?? 0) > 0
+            }
+        }
+        if rows.count <= 1 { return [] }
+        return rows
+    }
+
     public func tooltipRowText(_ row: UsageDayContributionRow, metric: UsageMetric) -> String {
         switch metric {
         case .tokens:

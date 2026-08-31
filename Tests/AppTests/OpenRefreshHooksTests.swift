@@ -19,6 +19,8 @@ final class OpenRefreshHooksTests: XCTestCase {
         let refresh = try String(contentsOf: root.appendingPathComponent("Sources/App/Usage/UsageSeriesCoordinator+Refresh.swift"))
         XCTAssertTrue(openRefresh.contains("func refreshOnMenuOpen()"))
         XCTAssertTrue(openRefresh.contains("func refreshOnDashboardOpen()"))
+        XCTAssertTrue(openRefresh.contains("hydrateSeatProfiles()"))
+        XCTAssertTrue(openRefresh.contains("prefetchSeatPictures()"))
         XCTAssertTrue(openRefresh.contains("func noteDashboardClosed()"))
         XCTAssertTrue(openRefresh.contains("func refreshCardsIfPolicyAllows(trigger:"))
         XCTAssertTrue(openRefresh.contains("refreshAllIfIdle()"))

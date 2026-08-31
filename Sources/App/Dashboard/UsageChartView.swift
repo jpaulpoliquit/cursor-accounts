@@ -10,6 +10,10 @@ struct UsageChartView: View {
             VStack(alignment: .leading, spacing: 4) {
                 headerRow
                 heroMetric
+                Text(scopeCaption)
+                    .font(CursorProfile.Font.meta)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             UsageRangeControls(coordinator: coordinator)
@@ -44,8 +48,21 @@ struct UsageChartView: View {
 
     private var sectionTitle: String {
         switch coordinator.resolvedMetric {
-        case .tokens: "Tokens"
+        case .tokens:
+            switch coordinator.scope {
+            case .allAccounts: "Tokens · all accounts"
+            case .account: "Tokens · this account"
+            }
         case .costCents: "Cost"
+        }
+    }
+
+    private var scopeCaption: String {
+        switch coordinator.scope {
+        case .allAccounts:
+            return "Graph total across every connected account."
+        case .account:
+            return "Graph total for the selected account only."
         }
     }
 

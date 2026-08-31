@@ -45,6 +45,7 @@ extension AppModel {
                 auth: seat.auth,
                 email: seat.email,
                 displayName: seat.displayName,
+                pictureURL: seat.pictureURL,
                 plan: snapshot.plan,
                 usage: snapshot.period.usage,
                 onDemand: snapshot.onDemand,

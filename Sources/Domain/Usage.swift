@@ -137,13 +137,40 @@ public enum PlanOwner: Codable, Sendable, Equatable, Hashable {
     case unknown(String)
 
     public init(wire: String) {
-        switch wire.lowercased() {
-        case "personal", "plan_owner_personal", "planownerpersonal":
+        let compact = wire
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: " ", with: "")
+        switch compact {
+        case "personal",
+             "plan_owner_personal",
+             "planownerpersonal",
+             "plan_owner_stripe",
+             "planownerstripe",
+             "stripe",
+             "plan_owner_free",
+             "planownerfree",
+             "free":
             self = .personal
-        case "team", "plan_owner_team", "planownerteam":
+        case "team",
+             "plan_owner_team",
+             "planownerteam",
+             "enterprise",
+             "plan_owner_enterprise",
+             "planownerenterprise",
+             "business",
+             "plan_owner_business",
+             "planownerbusiness":
             self = .team
         default:
-            self = .unknown(wire)
+            if compact.contains("team") || compact.contains("enterprise") || compact.contains("business") {
+                self = .team
+            } else if compact.contains("stripe") || compact.contains("personal") || compact.contains("free") {
+                self = .personal
+            } else {
+                self = .unknown(wire)
+            }
         }
     }
 }

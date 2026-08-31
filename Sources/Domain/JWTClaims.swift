@@ -4,10 +4,12 @@ import Foundation
 public struct JWTClaims: Sendable, Equatable, Hashable {
     public let subject: String?
     public let expiresAt: Date?
+    public let pictureURL: URL?
 
-    public init(subject: String?, expiresAt: Date?) {
+    public init(subject: String?, expiresAt: Date?, pictureURL: URL? = nil) {
         self.subject = subject
         self.expiresAt = expiresAt
+        self.pictureURL = pictureURL
     }
 
     public static func decode(jwt: String) -> JWTClaims? {
@@ -28,7 +30,11 @@ public struct JWTClaims: Sendable, Equatable, Hashable {
         } else {
             expiresAt = nil
         }
-        return JWTClaims(subject: subject, expiresAt: expiresAt)
+        return JWTClaims(
+            subject: subject,
+            expiresAt: expiresAt,
+            pictureURL: ProfilePictureURL.parse(from: object)
+        )
     }
 
     private static func base64URLDecode(_ value: String) -> Data? {

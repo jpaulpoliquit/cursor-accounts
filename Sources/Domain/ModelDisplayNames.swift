@@ -27,6 +27,41 @@ public enum ModelDisplayNames {
         "default": "Default",
     ]
 
+    public enum Family: String, Sendable, CaseIterable, Equatable {
+        case composer
+        case grok
+        case gpt
+        case claude
+        case oSeries
+        case cursor
+        case other
+
+        public var title: String {
+            switch self {
+            case .composer: "Composer"
+            case .grok: "Grok"
+            case .gpt: "GPT"
+            case .claude: "Claude"
+            case .oSeries: "OpenAI o-series"
+            case .cursor: "Cursor"
+            case .other: "Other"
+            }
+        }
+
+        public static func of(modelIntent: String) -> Family {
+            let slug = modelIntent.lowercased()
+            if slug.hasPrefix("composer") { return .composer }
+            if slug.contains("grok") { return .grok }
+            if slug.hasPrefix("gpt") || slug.contains("gpt-") { return .gpt }
+            if slug.hasPrefix("claude") { return .claude }
+            if slug.hasPrefix("o3") || slug.hasPrefix("o4") || slug.hasPrefix("o1") {
+                return .oSeries
+            }
+            if slug.hasPrefix("cursor-") { return .cursor }
+            return .other
+        }
+    }
+
     public static func displayName(for modelIntent: String) -> String {
         let trimmed = modelIntent.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "Unknown model" }

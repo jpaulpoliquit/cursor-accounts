@@ -9,16 +9,77 @@ struct MenuBarRoot: View {
     var body: some View {
         let presentation = model.presentation
 
-        Text(presentation.aggregateLine)
-            .foregroundStyle(.secondary)
-            .disabled(true)
-            .background(MenuBarMenuOpenBridge(onOpen: { model.refreshOnMenuOpen() }))
+        ideSwitchChrome(presentation)
 
-        if let summary = presentation.focusedSeat?.focusedSummaryLine {
-            Text(summary)
-                .foregroundStyle(.primary.opacity(0.78))
+        Button("Refresh All") {
+            model.refreshAll()
+        }
+        .keyboardShortcut("r")
+        .disabled(presentation.ideSwitchPhase.blocksOtherOpenActions)
+        .background(MenuBarMenuOpenBridge(onOpen: {
+            DashboardWindowPresenter.registerOpenWindow(openWindow)
+            model.refreshOnMenuOpen()
+        }))
+
+        Divider()
+
+        ForEach(presentation.connectedAccounts) { seat in
+            Menu {
+                SeatMenuContent(seat: seat, model: model)
+            } label: {
+                AccountMenuRow(model: seat.menuRow)
+            }
         }
 
+        addAccountMenuItem(presentation.addAccount, hasConnectedAccounts: !presentation.connectedAccounts.isEmpty)
+
+        Divider()
+
+        Toggle(
+            "Show usage in menu bar",
+            isOn: Binding(
+                get: { model.menuBarUsage == .usage },
+                set: { model.menuBarUsage = $0 ? .usage : .icon }
+            )
+        )
+
+        Toggle(
+            "Mask Email",
+            isOn: Binding(
+                get: { model.identityPolicy == .maskEmail },
+                set: { masked in
+                    model.identityPolicy = masked ? .maskEmail : .revealEmail
+                }
+            )
+        )
+
+        Button("Open Dashboard") {
+            model.refreshOnDashboardOpen()
+            DashboardWindowPresenter.open(using: openWindow)
+        }
+        .keyboardShortcut("d")
+
+        Divider()
+
+        Button("Show Account Switch Traces") {
+            AccountSwitchTraceReveal.open()
+        }
+
+        Divider()
+
+        Button(model.updates.menuTitle) {
+            Task { await model.updates.checkAndPresent() }
+        }
+        .disabled(model.updates.isChecking)
+
+        Button("Quit \(ProductName.display)") {
+            NSApplication.shared.terminate(nil)
+        }
+        .keyboardShortcut("q")
+    }
+
+    @ViewBuilder
+    private func ideSwitchChrome(_ presentation: AppPresentation) -> some View {
         if let ideStatus = presentation.ideSwitchPhase.menuStatusText {
             Text(ideStatus)
                 .foregroundStyle(presentation.ideSwitchPhase.allowsForceQuit ? Color.orange : Color.secondary)
@@ -51,54 +112,13 @@ struct MenuBarRoot: View {
             }
         }
 
-        Divider()
-
-        Button("Refresh All") {
-            model.refreshAll()
+        if presentation.ideSwitchPhase.menuStatusText != nil
+            || model.ideSwitch.lastRejectMessage != nil
+            || presentation.ideSwitchPhase.allowsKeepCurrentSession
+            || presentation.ideSwitchPhase.allowsForceQuit
+        {
+            Divider()
         }
-        .keyboardShortcut("r")
-        .disabled(presentation.ideSwitchPhase.blocksOtherOpenActions)
-
-        Divider()
-
-        ForEach(presentation.connectedAccounts) { seat in
-            Menu {
-                SeatMenuContent(seat: seat, model: model)
-            } label: {
-                AccountMenuRow(model: seat.menuRow)
-            }
-        }
-
-        addAccountMenuItem(presentation.addAccount, hasConnectedAccounts: !presentation.connectedAccounts.isEmpty)
-
-        Divider()
-
-        Toggle(
-            "Mask Email",
-            isOn: Binding(
-                get: { model.identityPolicy == .maskEmail },
-                set: { masked in
-                    model.identityPolicy = masked ? .maskEmail : .revealEmail
-                }
-            )
-        )
-
-        Button("Open Dashboard") {
-            model.refreshOnDashboardOpen()
-            DashboardWindowPresenter.open(using: openWindow)
-        }
-        .keyboardShortcut("d")
-
-        Divider()
-
-        Button("Show Account Switch Traces") {
-            AccountSwitchTraceReveal.open()
-        }
-
-        Button("Quit MultiCursor") {
-            NSApplication.shared.terminate(nil)
-        }
-        .keyboardShortcut("q")
     }
 
     @ViewBuilder

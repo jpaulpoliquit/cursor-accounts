@@ -46,7 +46,10 @@ final class DashboardIntentRoutingTests: XCTestCase {
         let seatCard = try String(
             contentsOf: root.appendingPathComponent("Sources/App/Dashboard/SeatCardView.swift")
         )
-        let dashboardSurface = dash + seatCard
+        let table = try String(
+            contentsOf: root.appendingPathComponent("Sources/App/Dashboard/DashboardAccountTable.swift")
+        )
+        let dashboardSurface = dash + seatCard + table
         for intent in [
             "beginSignIn(seatID:",
             "reauthenticate(seatID:",
@@ -54,6 +57,7 @@ final class DashboardIntentRoutingTests: XCTestCase {
             "requestSignOutLocally(seatID:",
             "requestSetOnDemand(seatID:",
             "requestSetOnDemandFixed(seatID:",
+            "presentOnDemandEditor(seatID:",
         ] {
             XCTAssertTrue(appModel.contains("func \(intent)") || appModel.contains("func \(intent.replacingOccurrences(of: "(seatID:", with: "(seatID:"))"), intent)
             XCTAssertTrue(menu.contains("model.\(intent)") || dashboardSurface.contains("model.\(intent)"), intent)
@@ -64,6 +68,7 @@ final class DashboardIntentRoutingTests: XCTestCase {
         XCTAssertTrue(dash.contains("model.requestSetOnDemand(seatID:"))
         XCTAssertTrue(menu.contains("model.requestSetOnDemandFixed(seatID:"))
         XCTAssertTrue(dash.contains("model.requestSetOnDemandFixed(seatID:"))
+        XCTAssertTrue(table.contains("model.presentOnDemandEditor(seatID:"))
         XCTAssertTrue(dash.contains("model.requestSignOutLocally(seatID:"))
         XCTAssertFalse(dash.contains("Text(\"Signed in\")"))
         XCTAssertFalse(dash.contains("Text(\"Account\")"))

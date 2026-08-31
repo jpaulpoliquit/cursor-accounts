@@ -51,7 +51,7 @@ targets:
   CursorBar:
     type: application
     platform: macOS
-    productName: MultiCursor
+    productName: Cursor Accounts
     sources:
       - path: Sources/App
     dependencies:
@@ -60,16 +60,17 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.cursorbar
-        PRODUCT_NAME: MultiCursor
+        PRODUCT_NAME: Cursor Accounts
         PRODUCT_MODULE_NAME: CursorBar
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: MultiCursor
-        INFOPLIST_KEY_CFBundleName: MultiCursor
+        INFOPLIST_KEY_CFBundleDisplayName: Cursor Accounts
+        INFOPLIST_KEY_CFBundleName: Cursor Accounts
         INFOPLIST_KEY_LSUIElement: YES
-        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026. Cursor Accounts."
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         COMBINE_HIDPI_IMAGES: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: CursorBar.entitlements
         ENABLE_APP_SANDBOX: NO
         ENABLE_HARDENED_RUNTIME: YES

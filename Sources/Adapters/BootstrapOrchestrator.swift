@@ -159,6 +159,7 @@ public struct BootstrapOrchestrator: Sendable {
             refresh: refresh,
             email: imported.email ?? existing?.email,
             displayName: imported.displayName ?? existing?.displayName,
+            pictureURL: imported.pictureURL ?? existing?.pictureURL,
             expiresAt: expiresAt,
             membershipType: imported.membershipType ?? existing?.membershipType,
             subscriptionStatus: imported.subscriptionStatus ?? existing?.subscriptionStatus
@@ -227,6 +228,7 @@ public struct BootstrapOrchestrator: Sendable {
                 auth: auth,
                 email: seat.email,
                 displayName: seat.displayName,
+                pictureURL: seat.pictureURL,
                 plan: seat.plan,
                 usage: seat.usage,
                 onDemand: seat.onDemand,

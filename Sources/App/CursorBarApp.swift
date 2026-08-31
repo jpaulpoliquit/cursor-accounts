@@ -14,14 +14,14 @@ struct CursorBarApp: App {
                     AppModel.sharedForVerify = model
                 }
         } label: {
-            Text(model.presentation.menuBarLabel)
+            MenuBarStatusLabel(presentation: model.presentation, usage: model.menuBarUsage)
                 .onAppear {
                     model.startBootstrap()
                     AppModel.sharedForVerify = model
                 }
         }
 
-        Window("Dashboard", id: DashboardWindowIdentity.sceneID) {
+        Window("Accounts", id: DashboardWindowIdentity.sceneID) {
             DashboardView(model: model)
                 .frame(minWidth: 720, minHeight: 560)
                 .modifier(DashboardColorSchemeModifier())
@@ -30,7 +30,6 @@ struct CursorBarApp: App {
                     AppModel.sharedForVerify = model
                 }
         }
-        .windowToolbarStyle(.unified)
         .defaultSize(width: 860, height: 800)
         .windowResizability(.contentMinSize)
     }

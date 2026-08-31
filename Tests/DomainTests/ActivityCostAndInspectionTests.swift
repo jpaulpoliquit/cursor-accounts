@@ -128,6 +128,9 @@ final class ActivityCostAndInspectionTests: XCTestCase {
         XCTAssertNotNil(index.periods[0].lastRequestMs)
         XCTAssertGreaterThan(index.periods[0].spanMs, 0)
         XCTAssertGreaterThan(index.periods[0].estimatedActiveMs, 0)
+        XCTAssertNil(index.period(nearestLabel: nil))
+        XCTAssertNil(index.period(nearestLabel: "not-a-real-label"))
+        XCTAssertEqual(index.period(nearestLabel: index.periods[0].label)?.requestCount, 3)
     }
 
     func testTopModelsCopyIsRangeAware() {
@@ -182,6 +185,13 @@ final class ActivityCostAndInspectionTests: XCTestCase {
         XCTAssertEqual(index.periods.count, 1)
         XCTAssertTrue(index.periods[0].contributionLabels.contains("Work: 1 requests"))
         XCTAssertTrue(index.periods[0].contributionLabels.contains("Personal: 1 requests"))
+        XCTAssertEqual(insights.seatActivityTotals(seatID: .seat1)?.tokens, 10)
+        XCTAssertEqual(insights.seatActivityTotals(seatID: .seat1)?.requests, 1)
+        XCTAssertEqual(insights.seatActivityTotals(seatID: .seat2)?.tokens, 20)
+        XCTAssertNil(insights.seatActivityTotals(seatID: .seat3))
+        let headline = insights.tokenHeadline(thisSeatID: .seat1)
+        XCTAssertEqual(headline.thisAccount, 10)
+        XCTAssertEqual(headline.allAccounts, 30)
     }
 
     func testRevealThenMaskRebuildDropsEmailFromInsightsInspection() {

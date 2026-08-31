@@ -5,6 +5,7 @@ import SwiftUI
 struct UsageInsightsView: View {
     @Bindable var coordinator: UsageSeriesCoordinator
     var includeModels: Bool = true
+    var includeCharts: Bool = true
     @State private var modelSort: DashboardModelSort = .tokens
     @State private var modelSortDirection: DashboardSortDirection = DashboardModelSort.tokens.defaultDirection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -52,10 +53,12 @@ struct UsageInsightsView: View {
 
     private func content(_ insights: ActivityInsights) -> some View {
         VStack(alignment: .leading, spacing: CursorProfile.sectionSpacing) {
-            UsageInsightsChartsView(
-                insights: insights,
-                accountLabels: coordinator.insightsAccountLabels
-            )
+            if includeCharts {
+                UsageInsightsChartsView(
+                    insights: insights,
+                    accountLabels: coordinator.insightsAccountLabels
+                )
+            }
             moneySummary(insights)
             if includeModels {
                 UsageModelCatalogView(

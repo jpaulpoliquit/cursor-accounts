@@ -36,6 +36,33 @@ final class SeatCredentialBinderTests: XCTestCase {
         XCTAssertEqual(try store.load(seatID: .seat2)?.identity, .subject("new-user"))
         XCTAssertEqual(try store.loadAll().count, 2)
     }
+
+    func testPlaceTokensPersistsPictureAndTeamMembership() throws {
+        let store = UncheckedMemorySeatStore()
+        let jwt = unsignedJWT(sub: "pic-user", exp: 2_000_000_000)
+        let tokens = AuthHTTPClient.SessionTokens(
+            access: try XCTUnwrap(AccessToken(jwt)),
+            refresh: try XCTUnwrap(RefreshToken("new.refresh"))
+        )
+        let profile = try XCTUnwrap(
+            HydratedAccountIdentity(
+                email: Email("pic@example.com"),
+                displayName: DisplayName("pic"),
+                pictureURL: URL(string: "https://example.com/pic.png"),
+                isTeamAccount: true
+            )
+        )
+        let placed = try SeatCredentialBinder.placeTokens(
+            preferredSeat: .seat1,
+            tokens: tokens,
+            profile: profile,
+            apiKey: nil,
+            store: store
+        )
+        let loaded = try XCTUnwrap(store.load(seatID: placed))
+        XCTAssertEqual(loaded.pictureURL?.absoluteString, "https://example.com/pic.png")
+        XCTAssertEqual(loaded.membershipType, "team")
+    }
 }
 
 private func unsignedJWT(sub: String, exp: Int) -> String {

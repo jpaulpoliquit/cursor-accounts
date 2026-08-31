@@ -6,6 +6,7 @@ public struct ImportedDesktopSession: Sendable, Equatable {
     public let refresh: RefreshToken
     public let email: Email?
     public let displayName: DisplayName?
+    public let pictureURL: URL?
     public let membershipType: String?
     public let subscriptionStatus: String?
     public let claims: JWTClaims
@@ -17,6 +18,7 @@ public struct ImportedDesktopSession: Sendable, Equatable {
         refresh: RefreshToken,
         email: Email?,
         displayName: DisplayName? = nil,
+        pictureURL: URL? = nil,
         membershipType: String?,
         subscriptionStatus: String?,
         userDataDir: URL
@@ -29,6 +31,7 @@ public struct ImportedDesktopSession: Sendable, Equatable {
         self.refresh = refresh
         self.email = email
         self.displayName = displayName
+        self.pictureURL = pictureURL
         self.membershipType = membershipType
         self.subscriptionStatus = subscriptionStatus
         self.claims = claims

@@ -10,7 +10,11 @@ struct DashboardIdentityHeader: View {
     var body: some View {
         HStack(alignment: compact ? .center : .top, spacing: compact ? 8 : 12) {
             if showsIdentity {
-                CursorProfileAvatar(name: heroTitle, size: compact ? 22 : CursorProfile.avatarSize)
+                CursorProfileAvatar(
+                    name: heroTitle,
+                    pictureURL: focused?.pictureURL,
+                    size: compact ? 22 : CursorProfile.avatarSize
+                )
             }
             VStack(alignment: .leading, spacing: compact ? 1 : 4) {
                 Text(heroTitle)
@@ -48,7 +52,7 @@ struct DashboardIdentityHeader: View {
         if showsIdentity, let focused {
             return focused.dashboardTitle
         }
-        return "CursorBar"
+        return ProductName.display
     }
 
     private var headerSubtitle: String {

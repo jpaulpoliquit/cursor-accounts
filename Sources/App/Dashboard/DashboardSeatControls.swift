@@ -1,3 +1,4 @@
+import AppKit
 import CursorBarDomain
 import SwiftUI
 
@@ -89,36 +90,64 @@ struct DashboardAccountActionsMenu: View {
                 if case .available(_, let selection, let fixedTitle, _, let writesDisabled) =
                     projection.onDemand
                 {
-                    Button {
-                        model.requestSetOnDemand(seatID: seat.seatID, mode: .off)
-                    } label: {
-                        checkLabel("Off", selected: selection == .off)
-                    }
-                    .disabled(writesDisabled)
+                    Section("On-demand") {
+                        Button("Edit on-demand…") {
+                            model.presentOnDemandEditor(seatID: seat.seatID)
+                        }
+                        .disabled(writesDisabled)
 
-                    Button {
-                        model.requestSetOnDemandFixed(seatID: seat.seatID)
-                    } label: {
-                        checkLabel(fixedTitle, selected: selection == .fixed)
-                    }
-                    .disabled(writesDisabled)
+                        Button {
+                            model.requestSetOnDemand(seatID: seat.seatID, mode: .off)
+                        } label: {
+                            checkLabel("On-demand Off", selected: selection == .off)
+                        }
+                        .disabled(writesDisabled)
 
-                    Button {
-                        model.requestSetOnDemand(seatID: seat.seatID, mode: .unlimited)
-                    } label: {
-                        checkLabel("Unlimited", selected: selection == .unlimited)
-                    }
-                    .disabled(writesDisabled)
+                        Button {
+                            model.requestSetOnDemandFixed(seatID: seat.seatID)
+                        } label: {
+                            checkLabel(fixedTitle, selected: selection == .fixed)
+                        }
+                        .disabled(writesDisabled)
 
-                    Button("Set fixed limit…") {
-                        model.requestSetOnDemandFixed(seatID: seat.seatID)
+                        Button {
+                            model.requestSetOnDemand(seatID: seat.seatID, mode: .unlimited)
+                        } label: {
+                            checkLabel("Unlimited", selected: selection == .unlimited)
+                        }
+                        .disabled(writesDisabled)
+
+                        Button("Set fixed limit…") {
+                            model.requestSetOnDemandFixed(seatID: seat.seatID)
+                        }
+                        .disabled(writesDisabled)
                     }
-                    .disabled(writesDisabled)
+                }
+
+                Button("Show in Dashboard") {
+                    model.focus(seatID: seat.seatID)
+                }
+
+                Button("Open Cursor Settings") {
+                    if let url = URL(string: "https://cursor.com/settings") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+
+                Button("Connect another account") {
+                    model.connectAnotherAccount()
+                }
+
+                if !seat.isDesktopBound, seat.auth == .signedIn || seat.auth == .needsReauth {
+                    Button(seat.openCursorAsSeatTitle) {
+                        model.openCursorAsSeat(seatID: seat.seatID)
+                    }
+                    .disabled(model.presentation.ideSwitchPhase.blocksOtherOpenActions)
                 }
 
                 Divider()
 
-                Button("Sign Out Locally", role: .destructive) {
+                Button("Sign Out from \(ProductName.display)", role: .destructive) {
                     model.requestSignOutLocally(seatID: seat.seatID)
                 }
             } label: {

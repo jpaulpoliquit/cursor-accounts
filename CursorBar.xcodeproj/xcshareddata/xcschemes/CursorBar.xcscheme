@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "BA7F1E4D65B822DCF0A5CC9C"
-               BuildableName = "MultiCursor.app"
+               BuildableName = "Cursor Accounts.app"
                BlueprintName = "CursorBar"
                ReferencedContainer = "container:CursorBar.xcodeproj">
             </BuildableReference>
@@ -33,7 +33,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "BA7F1E4D65B822DCF0A5CC9C"
-            BuildableName = "MultiCursor.app"
+            BuildableName = "Cursor Accounts.app"
             BlueprintName = "CursorBar"
             ReferencedContainer = "container:CursorBar.xcodeproj">
          </BuildableReference>
@@ -91,7 +91,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "BA7F1E4D65B822DCF0A5CC9C"
-            BuildableName = "MultiCursor.app"
+            BuildableName = "Cursor Accounts.app"
             BlueprintName = "CursorBar"
             ReferencedContainer = "container:CursorBar.xcodeproj">
          </BuildableReference>
@@ -110,7 +110,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "BA7F1E4D65B822DCF0A5CC9C"
-            BuildableName = "MultiCursor.app"
+            BuildableName = "Cursor Accounts.app"
             BlueprintName = "CursorBar"
             ReferencedContainer = "container:CursorBar.xcodeproj">
          </BuildableReference>

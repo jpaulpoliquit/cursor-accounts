@@ -14,6 +14,17 @@ enum VerifyDashboardPresenter {
                     model.dashboardTab = tab
                 }
             }
+            if arg.hasPrefix("--account-layout=") {
+                let raw = String(arg.dropFirst("--account-layout=".count))
+                switch raw {
+                case DashboardAccountLayout.table.rawValue:
+                    model.accountLayout = .table
+                case DashboardAccountLayout.detail.rawValue, "list":
+                    model.accountLayout = .detail
+                default:
+                    break
+                }
+            }
             #if DEBUG
             if arg.hasPrefix("--dashboard-layout=") {
                 let raw = String(arg.dropFirst("--dashboard-layout=".count))
@@ -30,21 +41,22 @@ enum VerifyDashboardPresenter {
         applyLaunchOptions(to: model)
         model.refreshOnDashboardOpen()
         if let window {
-            DashboardWindowPresenter.presentHosted(window)
-            scheduleScreenshotIfRequested(window: window)
-            return
+        DashboardWindowPresenter.presentHosted(window, title: model.dashboardTab.title)
+        scheduleScreenshotIfRequested(window: window, tab: model.dashboardTab)
+        return
         }
 
         let hosting = NSHostingController(rootView: Host(model: model))
         hosting.sceneBridgingOptions = .toolbars
         let window = NSWindow(contentViewController: hosting)
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
-        window.setContentSize(NSSize(width: 860, height: 800))
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        let tallUsage = model.dashboardTab == .usage
+        window.setContentSize(NSSize(width: 860, height: tallUsage ? 1100 : 800))
         window.isReleasedWhenClosed = false
         window.center()
         self.window = window
-        DashboardWindowPresenter.presentHosted(window)
-        scheduleScreenshotIfRequested(window: window)
+        DashboardWindowPresenter.presentHosted(window, title: model.dashboardTab.title)
+        scheduleScreenshotIfRequested(window: window, tab: model.dashboardTab)
 
         let marker = URL(fileURLWithPath: "/tmp/cursorbar-dashboard-opened")
         try? "opened".write(to: marker, atomically: true, encoding: .utf8)
@@ -60,9 +72,16 @@ enum VerifyDashboardPresenter {
         return nil
     }
 
-    private static func scheduleScreenshotIfRequested(window: NSWindow) {
+    private static func scheduleScreenshotIfRequested(window: NSWindow, tab: DashboardTab) {
         guard let path = screenshotPath() else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
+        let delay: TimeInterval
+        switch tab {
+        case .accounts:
+            delay = 8.0
+        case .models, .usage:
+            delay = 10.0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             captureContent(window: window, to: path)
         }
     }

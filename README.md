@@ -1,46 +1,49 @@
-# MultiCursor
+# Cursor Accounts
 
 Native macOS 14+ menu-bar app for managing Cursor accounts.
 
-MultiCursor is unofficial and is not affiliated with Cursor or Anysphere.
+Unofficial and not affiliated with Cursor or Anysphere. MIT licensed.
 
-Bundle ID: `app.cursorbar` (unchanged; Keychain seats stay on this service).
+The Finder name is **Cursor Accounts**. Bundle ID stays `app.cursorbar` so saved Keychain seats keep working.
 
-## Install (users)
+## Get Cursor Accounts
 
 Requires macOS 14 or later.
 
-1. Open `MultiCursor-0.1.0.dmg`.
-2. Drag **MultiCursor** to **Applications**.
-3. Launch MultiCursor from Applications. It is a menu-bar agent (`LSUIElement`); look for `MC · N` in the menu bar.
+### Disk image (for other people)
 
-The disk image is the share path (`Scripts/package-dmg.sh` writes `dist/MultiCursor-0.1.0.dmg`).
+1. Open `Cursor-Accounts-0.1.0.dmg`.
+2. Drag **Cursor Accounts** onto **Applications**.
+3. Open Cursor Accounts from Applications. It is a menu-bar agent (`LSUIElement`); look for the yellow mark with the active account and usage.
 
-### Gatekeeper
+```bash
+./Scripts/package-dmg.sh
+# writes dist/Cursor-Accounts-0.1.0.dmg  (gitignored — do not commit the binary)
+```
 
-This build is signed with Apple Development, not Developer ID. On another Mac, Gatekeeper will block the first launch until you right-click MultiCursor.app, choose Open, and confirm. There is no Developer ID identity on the signing Mac.
+The image contains Cursor Accounts, an Applications shortcut, and a short Read Me.
+
+Check for Updates reads the latest GitHub Release of this repo. The remote is private, so the app uses your local `gh auth` login and never embeds a token. Publish a release whose asset is `Cursor-Accounts-*.dmg`. The menu rechecks quietly once a day and turns into Update Available when a newer tag exists. It does not replace the app. View Release and Download DMG open the published GitHub files.
+
+This build is signed with Apple Development, not Developer ID. On another Mac, Gatekeeper blocks the first launch until you right-click Cursor Accounts.app, choose Open, and confirm. Sparkle-style auto-replace needs Developer ID plus a public feed. That is not this build.
+
+### This Mac, from source
+
+```bash
+brew install xcodegen                # once
+./Scripts/install.sh                 # Release build → /Applications/Cursor Accounts.app
+INSTALL_DIR="$HOME/Applications" ./Scripts/install.sh
+```
+
+After a successful run, `/Applications/Cursor Accounts.app` exists. The script does not leave you in DerivedData.
 
 ## Build from source
 
 Requires Xcode 15+ (Xcode 27 beta works), macOS 14+, and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash
-brew install xcodegen   # once
 xcodegen generate       # if you changed project.yml
 open CursorBar.xcodeproj
-```
-
-Install a Release build into Applications (does not leave you in DerivedData):
-
-```bash
-./Scripts/install.sh                 # copies MultiCursor.app to /Applications
-INSTALL_DIR="$HOME/Applications" ./Scripts/install.sh
-```
-
-Package a drag-to-install DMG (app plus an Applications symlink):
-
-```bash
-./Scripts/package-dmg.sh             # writes dist/MultiCursor-0.1.0.dmg
 ```
 
 Verification harness (prints exact commands; writes redacted logs under `.verify/`):
@@ -53,7 +56,7 @@ Verification harness (prints exact commands; writes redacted logs under `.verify
 
 `live-write` is not implemented (needs dual env gates + exact revert). Smoke never relaunches Cursor IDE.
 
-The Xcode scheme stays `CursorBar`. The built product is `MultiCursor.app`. Swift modules stay `CursorBar*`.
+The Xcode scheme stays `CursorBar`. The built product is `Cursor Accounts.app`. Swift modules stay `CursorBar*`.
 
 ```bash
 export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer   # if needed
@@ -61,7 +64,7 @@ xcodebuild -scheme CursorBar -destination 'platform=macOS' build
 xcodebuild -scheme CursorBar -destination 'platform=macOS' test
 ```
 
-**Switch account…** is an explicit menu action with confirmation. MultiCursor uses one shared Cursor IDE profile (`~/Library/Application Support/Cursor`). Switching quits Cursor, replaces only scoped `cursorAuth/*` session rows in `state.vscdb`, relaunches the shared profile (no seat-specific `--user-data-dir`), and marks Active only after the DB JWT subject matches the target seat. Settings, extensions, history, and MCP config stay in the shared profile. Focus, sign-in, refresh, and on-demand never restart the IDE.
+**Switch account…** is an explicit menu action with confirmation. Cursor Accounts uses one shared Cursor IDE profile (`~/Library/Application Support/Cursor`). Switching quits Cursor, replaces only scoped `cursorAuth/*` session rows in `state.vscdb`, relaunches the shared profile (no seat-specific `--user-data-dir`), and marks Active only after the DB JWT subject matches the target seat. Settings, extensions, history, and MCP config stay in the shared profile. Focus, sign-in, refresh, and on-demand never restart the IDE.
 
 Legacy per-seat directories under `~/Library/Application Support/CursorBar/IDEProfiles/` are left on disk and are no longer launched. Migration is silent by default.
 
@@ -77,7 +80,7 @@ Legacy per-seat directories under `~/Library/Application Support/CursorBar/IDEPr
 
 **Composition.** `AppModel` paints a credential-free shell from Keychain, then `BootstrapOrchestrator` imports the active Cursor desktop session into Seat 1 (or the matching existing seat) and probes current-period usage.
 
-**Security.** App Sandbox is off for v1 so MultiCursor can read and (only during account switch) narrowly update Cursor's shared `state.vscdb`. Only Keychain service `app.cursorbar` is writable. Cursor-owned Keychain items are never written.
+**Security.** App Sandbox is off for v1 so Cursor Accounts can read and (only during account switch) narrowly update Cursor's shared `state.vscdb`. Only Keychain service `app.cursorbar` is writable. Cursor-owned Keychain items are never written.
 
 Account-switch DB writes are allowed only after Cursor has fully exited. The write set is scoped `cursorAuth/*` session rows from a Connect-ready plan (never `crsr_` API keys), applied in a `BEGIN IMMEDIATE` transaction with in-memory row backup, exact restore on failure, and identity verification before Ready/Active. Unrelated `ItemTable` rows and other tables are preserved. Fixture tests use `CursorAuthSessionStore.fixture` which refuses the live Application Support Cursor path.
 

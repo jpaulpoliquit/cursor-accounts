@@ -16,6 +16,11 @@ final class AppModel {
             reproject()
         }
     }
+    var menuBarUsage: MenuBarUsageDisplay {
+        didSet {
+            menuBarUsageStore.save(menuBarUsage)
+        }
+    }
 
     @ObservationIgnored var aggregate: AggregateSnapshot
     @ObservationIgnored var bootstrapPhase: BootstrapPhase = .pending
@@ -29,6 +34,7 @@ final class AppModel {
     @ObservationIgnored let keychain: any SeatCredentialStore
     @ObservationIgnored let refresher: SeatUsageRefresher
     @ObservationIgnored let policyStore: IdentityDisplayPolicyStore
+    @ObservationIgnored let menuBarUsageStore: MenuBarUsageStore
     @ObservationIgnored let focusStore: FocusedSeatStore
     @ObservationIgnored let ideSwitch: IDESwitchCoordinator
     @ObservationIgnored let usageRefresh: UsageRefreshCoordinator
@@ -45,6 +51,11 @@ final class AppModel {
     var selectedAccountID: SeatID?
     var modelSort: DashboardModelSort = .tokens
     var modelSortDirection: DashboardSortDirection = DashboardModelSort.tokens.defaultDirection
+    var accountUsageMetric: AccountUsageMetric = .percent
+    var accountFilter = ""
+    var modelGroup: DashboardModelGroup = .family
+    var onDemandEditorSeatID: SeatID?
+    let updates = AppUpdateController()
     #if DEBUG
     var dashboardLayoutPrototype: DashboardLayoutPrototype = .profileColumn
     #endif
@@ -58,6 +69,7 @@ final class AppModel {
         seriesRefresher: UsageSeriesRefresher? = nil,
         authEngine: AuthEngine? = nil,
         policyStore: IdentityDisplayPolicyStore = IdentityDisplayPolicyStore(),
+        menuBarUsageStore: MenuBarUsageStore = MenuBarUsageStore(),
         focusStore: FocusedSeatStore = FocusedSeatStore(),
         ideSwitchEngine: IDESwitchEngine? = nil,
         ideSwitchDetector: ActiveIDESeatDetector? = nil,
@@ -78,10 +90,12 @@ final class AppModel {
         self.keychain = keychain
         self.refresher = resolvedRefresher
         self.policyStore = policyStore
+        self.menuBarUsageStore = menuBarUsageStore
         self.focusStore = focusStore
         self.cardSnapshotStore = cardSnapshotStore
         self.usageBySeat = cardSnapshotStore.load()
         self.identityPolicy = policyStore.load()
+        self.menuBarUsage = menuBarUsageStore.load()
         self.focusedSeatID = focusStore.load()
         let resolvedAuth = authEngine ?? AuthEngine(
             store: keychain,
@@ -269,6 +283,20 @@ final class AppModel {
 
     func requestSetOnDemandFixed(seatID: SeatID) {
         confirmation.requestSetOnDemandFixed(seatID: seatID)
+    }
+
+    func presentOnDemandEditor(seatID: SeatID) {
+        onDemandEditorSeatID = seatID
+    }
+
+    func dismissOnDemandEditor() {
+        onDemandEditorSeatID = nil
+    }
+
+    func commitOnDemandEditor(mode: OnDemandMode) {
+        guard let seatID = onDemandEditorSeatID else { return }
+        onDemandEditorSeatID = nil
+        confirmation.applyConfirmedOnDemand(seatID: seatID, mode: mode)
     }
 
     func beginSignIn(seatID: SeatID) { seatAuth.beginSignIn(seatID: seatID) }

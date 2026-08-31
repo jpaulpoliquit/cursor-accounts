@@ -83,6 +83,18 @@ public struct ModelPricingRow: Sendable, Equatable, Hashable, Codable {
     }
 }
 
+/// Models that share a `ModelDisplayNames.Family`, in family declaration order.
+public struct ModelFamilySection: Sendable, Equatable, Identifiable {
+    public var id: ModelDisplayNames.Family { family }
+    public let family: ModelDisplayNames.Family
+    public let rows: [ModelPricingRow]
+
+    public init(family: ModelDisplayNames.Family, rows: [ModelPricingRow]) {
+        self.family = family
+        self.rows = rows
+    }
+}
+
 /// All models in the fetched event slice, with implied Cursor rates and subsidy.
 public struct ModelPricingCatalog: Sendable, Equatable, Hashable, Codable {
     public let models: [ModelPricingRow]
@@ -156,6 +168,15 @@ public enum ActivityModelCatalog {
             totalOnDemandChargedCents: charged,
             totalSubsidizedCents: max(0, usage - charged)
         )
+    }
+
+    /// Groups rows by family. Empty families are omitted; order is `Family.allCases`.
+    public static func sectionsByFamily(_ rows: [ModelPricingRow]) -> [ModelFamilySection] {
+        let grouped = Dictionary(grouping: rows) { ModelDisplayNames.Family.of(modelIntent: $0.modelIntent) }
+        return ModelDisplayNames.Family.allCases.compactMap { family in
+            guard let members = grouped[family], !members.isEmpty else { return nil }
+            return ModelFamilySection(family: family, rows: members)
+        }
     }
 
     public static func impliedCentsPerMillion(usageValueCents: Int64, tokens: Int64) -> Int64? {

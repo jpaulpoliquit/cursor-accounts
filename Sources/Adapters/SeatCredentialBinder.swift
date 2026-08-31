@@ -67,8 +67,11 @@ enum SeatCredentialBinder {
             refresh: tokens.refresh,
             email: profile.email ?? existing?.email,
             displayName: profile.displayName ?? existing?.displayName,
+            pictureURL: profile.pictureURL
+                ?? JWTClaims.decode(jwt: tokens.access.rawValue)?.pictureURL
+                ?? existing?.pictureURL,
             expiresAt: expiresAt,
-            membershipType: existing?.membershipType,
+            membershipType: profile.isTeamAccount ? "team" : existing?.membershipType,
             subscriptionStatus: existing?.subscriptionStatus,
             apiKey: apiKey ?? existing?.apiKey
         )

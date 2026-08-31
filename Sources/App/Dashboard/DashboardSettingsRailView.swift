@@ -30,7 +30,7 @@ struct DashboardSettingsRailView: View {
 
     private var rail: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("CursorBar")
+            Text(ProductName.display)
                 .font(CursorProfile.Font.meta)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 14)

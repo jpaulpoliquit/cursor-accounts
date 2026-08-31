@@ -95,7 +95,7 @@ struct MenuBarRoot: View {
             AccountSwitchTraceReveal.open()
         }
 
-        Button("Quit CursorBar") {
+        Button("Quit MultiCursor") {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")

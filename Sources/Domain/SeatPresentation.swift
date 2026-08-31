@@ -278,9 +278,9 @@ public struct AppPresentation: Sendable, Equatable {
     public var menuBarLabel: String {
         let short = worstAttention.shortTitle
         if short.isEmpty {
-            return "CB · \(signedInCount)"
+            return "MC · \(signedInCount)"
         }
-        return "CB · \(signedInCount) · \(short)"
+        return "MC · \(signedInCount) · \(short)"
     }
 
     public var focusedSeat: SeatPresentation? {

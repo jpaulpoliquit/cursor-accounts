@@ -658,6 +658,7 @@
 		AA39B1825558CF753151DFD6 /* DashboardPrototypeSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPrototypeSwitcher.swift; sourceTree = "<group>"; };
 		AA3BB5AF30FC6538A0A1AECF /* HydratedAccountIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydratedAccountIdentity.swift; sourceTree = "<group>"; };
 		AA801D1D168DFC08ABC5BBCB /* CachedScopedProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedScopedProfileTests.swift; sourceTree = "<group>"; };
+		AB173C23C7767F7153A3BA38 /* MultiCursor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MultiCursor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ACE059283A2885E75D515B4D /* UsageSeriesAggregatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageSeriesAggregatorTests.swift; sourceTree = "<group>"; };
 		ACFC95271912A96B763FDBC4 /* NOTES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NOTES.md; sourceTree = "<group>"; };
 		AF700085A82C1D86ED4F9095 /* JWTClaimsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTClaimsTests.swift; sourceTree = "<group>"; };
@@ -729,7 +730,6 @@
 		F4097B38A822F2D692761212 /* DashboardClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardClient.swift; sourceTree = "<group>"; };
 		F7A026C6827552B177E27454 /* DashboardSessionProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSessionProbeTests.swift; sourceTree = "<group>"; };
 		F7A116C03511D095E34FDED6 /* SeatUsageRefresherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatUsageRefresherTests.swift; sourceTree = "<group>"; };
-		F9F1B12F4C4AACEF864D4DCA /* CursorBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CursorBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD76E0914F55830AA9B359C9 /* AccountSwitchPreflightReason.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSwitchPreflightReason.swift; sourceTree = "<group>"; };
 		FDB26F0B2711856FCC10FB84 /* DashboardAccountSort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardAccountSort.swift; sourceTree = "<group>"; };
 		FE9EAA5DD7E973003F8787F9 /* SeatPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatPresentation.swift; sourceTree = "<group>"; };
@@ -1193,12 +1193,12 @@
 		BEB2387EFBA8526234701323 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F9F1B12F4C4AACEF864D4DCA /* CursorBar.app */,
 				72C4A3BFC8C6AE9788F14251 /* CursorBarAdapters.framework */,
 				0E7F969271A9DF09A8CE953E /* CursorBarAdaptersTests.xctest */,
 				5976C232906C7AD8B76533AB /* CursorBarAppTests.xctest */,
 				2ADE263171E0E196308D94BE /* CursorBarDomain.framework */,
 				5FAE97C0A0FB112BE5683246 /* CursorBarDomainTests.xctest */,
+				AB173C23C7767F7153A3BA38 /* MultiCursor.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1300,7 +1300,7 @@
 			packageProductDependencies = (
 			);
 			productName = CursorBar;
-			productReference = F9F1B12F4C4AACEF864D4DCA /* CursorBar.app */;
+			productReference = AB173C23C7767F7153A3BA38 /* MultiCursor.app */;
 			productType = "com.apple.product-type.application";
 		};
 		D4E9C0018D96650283645066 /* CursorBarAdaptersTests */ = {
@@ -1897,8 +1897,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_TESTABILITY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = CursorBar;
-				INFOPLIST_KEY_CFBundleName = CursorBar;
+				INFOPLIST_KEY_CFBundleDisplayName = MultiCursor;
+				INFOPLIST_KEY_CFBundleName = MultiCursor;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1907,7 +1907,8 @@
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.cursorbar;
-				PRODUCT_NAME = CursorBar;
+				PRODUCT_MODULE_NAME = CursorBar;
+				PRODUCT_NAME = MultiCursor;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -1967,7 +1968,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = app.cursorbar.app.tests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorBar.app/Contents/MacOS/CursorBar";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MultiCursor.app/Contents/MacOS/MultiCursor";
 			};
 			name = Release;
 		};
@@ -2143,8 +2144,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_TESTABILITY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = CursorBar;
-				INFOPLIST_KEY_CFBundleName = CursorBar;
+				INFOPLIST_KEY_CFBundleDisplayName = MultiCursor;
+				INFOPLIST_KEY_CFBundleName = MultiCursor;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2153,7 +2154,8 @@
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.cursorbar;
-				PRODUCT_NAME = CursorBar;
+				PRODUCT_MODULE_NAME = CursorBar;
+				PRODUCT_NAME = MultiCursor;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -2194,7 +2196,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = app.cursorbar.app.tests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorBar.app/Contents/MacOS/CursorBar";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MultiCursor.app/Contents/MacOS/MultiCursor";
 			};
 			name = Debug;
 		};

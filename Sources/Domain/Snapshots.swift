@@ -81,6 +81,6 @@ public struct AggregateSnapshot: Codable, Sendable, Equatable, Hashable {
     }
 
     public var menuBarLabel: String {
-        "CB · \(signedInCount)"
+        "MC · \(signedInCount)"
     }
 }

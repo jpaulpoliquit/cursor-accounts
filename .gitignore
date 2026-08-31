@@ -1,3 +1,6 @@
+# Packaged disk images (Scripts/package-dmg.sh)
+dist/
+
 # Xcode
 build/
 .build/

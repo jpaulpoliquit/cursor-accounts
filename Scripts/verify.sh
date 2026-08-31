@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CursorBar verification harness.
+# MultiCursor verification harness.
 # Modes: unit (default) | adapters | smoke | live-ro | usage-restart
 # live-write is intentionally omitted (requires dual gates + exact revert).
 set -euo pipefail
@@ -147,8 +147,8 @@ build_app() {
     build \
     >"${OUT_DIR}/xcodebuild-build.log" 2>&1 \
     || fail "xcodebuild build failed (see ${OUT_DIR}/xcodebuild-build.log)"
-  APP="$(find "${OUT_DIR}/DerivedData/Build/Products" -name 'CursorBar.app' -type d | head -1)"
-  [[ -n "${APP}" ]] || fail "CursorBar.app not found under DerivedData"
+  APP="$(find "${OUT_DIR}/DerivedData/Build/Products" -name 'MultiCursor.app' -type d | head -1)"
+  [[ -n "${APP}" ]] || fail "MultiCursor.app not found under DerivedData"
   printf '%s' "${APP}" >"${OUT_DIR}/app-path.txt"
   log "APP=${APP}"
 }
@@ -166,10 +166,10 @@ assert_stable_signing() {
   local app="$1"
   codesign -dv --verbose=4 "${app}" >"${OUT_DIR}/codesign.txt" 2>&1 || fail "codesign -dv failed"
   if rg -q 'Signature=adhoc' "${OUT_DIR}/codesign.txt"; then
-    fail "CursorBar.app is ad-hoc signed; Keychain ACL will re-prompt every rebuild"
+    fail "MultiCursor.app is ad-hoc signed; Keychain ACL will re-prompt every rebuild"
   fi
   if ! rg -q 'TeamIdentifier=8DF2GCMHK5' "${OUT_DIR}/codesign.txt"; then
-    fail "CursorBar.app missing TeamIdentifier=8DF2GCMHK5 (see ${OUT_DIR}/codesign.txt)"
+    fail "MultiCursor.app missing TeamIdentifier=8DF2GCMHK5 (see ${OUT_DIR}/codesign.txt)"
   fi
   codesign -d -r- "${app}" >"${OUT_DIR}/designated-requirement.txt" 2>&1 \
     || fail "failed to read designated requirement"
@@ -194,14 +194,14 @@ run_smoke() {
   rm -f /tmp/cursorbar-dashboard-opened /tmp/cursorbar-dashboard-key
   open -n "${APP}" --args --open-dashboard --dashboard-dark --mask-email \
     "--dump-presentation=${DUMP_PATH}" \
-    || fail "open CursorBar.app failed"
+    || fail "open MultiCursor.app failed"
   sleep 4
-  osascript -e 'tell application "CursorBar" to activate' >/dev/null 2>&1 || true
+  osascript -e 'tell application "MultiCursor" to activate' >/dev/null 2>&1 || true
   if detect_keychain_dialog; then
     fail "Keychain password/ACL dialog present after launch (see ${OUT_DIR}/windows.txt)"
   fi
-  if ! pgrep -f 'CursorBar.app/Contents/MacOS/CursorBar' >/dev/null; then
-    fail "CursorBar process not found after launch"
+  if ! pgrep -f 'MultiCursor.app/Contents/MacOS/MultiCursor' >/dev/null; then
+    fail "MultiCursor process not found after launch"
   fi
   log "process ok"
   # Dashboard must exist and become key/front via DashboardWindowPresenter.
@@ -213,7 +213,7 @@ key_marker = pathlib.Path("/tmp/cursorbar-dashboard-key")
 ok = False
 for i in range(40):
     if i in (4, 12, 24):
-        subprocess.run(["osascript", "-e", 'tell application "CursorBar" to activate'], check=False)
+        subprocess.run(["osascript", "-e", 'tell application "MultiCursor" to activate'], check=False)
     count = "0"
     front = "?"
     try:
@@ -223,7 +223,7 @@ for i in range(40):
         ], text=True).strip()
         count = subprocess.check_output([
             "osascript", "-e",
-            'tell application "System Events" to count windows of process "CursorBar"'
+            'tell application "System Events" to count windows of process "MultiCursor"'
         ], text=True).strip()
     except subprocess.CalledProcessError as exc:
         print(f"attempt={i} osascript_error={exc}")
@@ -231,7 +231,7 @@ for i in range(40):
         continue
     key_state = key_marker.read_text().strip() if key_marker.exists() else "missing"
     print(f"attempt={i} frontmost={front} window_count={count} key_marker={key_state} opened={marker.exists()}")
-    if int(count or "0") >= 1 and (front == "CursorBar" or key_state == "key"):
+    if int(count or "0") >= 1 and (front == "MultiCursor" or key_state == "key"):
         ok = True
         break
     time.sleep(0.25)
@@ -268,7 +268,7 @@ PY
     # AX fallback: confirm Daily tokens exists in the dashboard UI tree.
     if osascript <<'APPLESCRIPT' >"${OUT_DIR}/graph-ax.txt" 2>"${OUT_DIR}/graph-ax.err"
 tell application "System Events"
-  tell process "CursorBar"
+  tell process "MultiCursor"
     set texts to value of every static text of every window
     return texts as string
   end tell
@@ -305,10 +305,10 @@ APPLESCRIPT
   if detect_keychain_dialog; then
     fail "Keychain password/ACL dialog appeared during smoke (see ${OUT_DIR}/windows.txt)"
   fi
-  pkill -f 'CursorBar.app/Contents/MacOS/CursorBar' 2>/dev/null || true
+  pkill -f 'MultiCursor.app/Contents/MacOS/MultiCursor' 2>/dev/null || true
   sleep 1
-  if pgrep -f 'CursorBar.app/Contents/MacOS/CursorBar' >/dev/null; then
-    fail "CursorBar still running after quit"
+  if pgrep -f 'MultiCursor.app/Contents/MacOS/MultiCursor' >/dev/null; then
+    fail "MultiCursor still running after quit"
   fi
   log "smoke finished status=$(cat "${OUT_DIR}/smoke-status.txt")"
 }
@@ -391,8 +391,8 @@ stop_pid() {
 run_usage_restart() {
   build_app
   APP="$(cat "${OUT_DIR}/app-path.txt")"
-  BIN="${APP}/Contents/MacOS/CursorBar"
-  [[ -x "${BIN}" ]] || fail "CursorBar binary missing at ${BIN}"
+  BIN="${APP}/Contents/MacOS/MultiCursor"
+  [[ -x "${BIN}" ]] || fail "MultiCursor binary missing at ${BIN}"
 
   CACHE="${OUT_DIR}/cache"
   DUMP="${OUT_DIR}/presentation.txt"

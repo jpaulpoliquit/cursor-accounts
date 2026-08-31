@@ -51,6 +51,7 @@ targets:
   CursorBar:
     type: application
     platform: macOS
+    productName: MultiCursor
     sources:
       - path: Sources/App
     dependencies:
@@ -59,10 +60,11 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.cursorbar
-        PRODUCT_NAME: CursorBar
+        PRODUCT_NAME: MultiCursor
+        PRODUCT_MODULE_NAME: CursorBar
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: CursorBar
-        INFOPLIST_KEY_CFBundleName: CursorBar
+        INFOPLIST_KEY_CFBundleDisplayName: MultiCursor
+        INFOPLIST_KEY_CFBundleName: MultiCursor
         INFOPLIST_KEY_LSUIElement: YES
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
         MARKETING_VERSION: "0.1.0"

@@ -1,0 +1,46 @@
+# Xcode
+build/
+.build/
+DerivedData/
+*.xcuserdata
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# XcodeGen regenerates the project; prefer editing project.yml
+# CursorBar.xcodeproj is checked in so the repo opens without xcodegen.
+
+# Swift / SPM
+.swiftpm/
+Packages/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Secrets / local env
+.env
+.env.*
+*.pem
+*.p12
+*.key
+
+# Editor / agent
+.idea/
+.vscode/
+*.swp
+*~
+.cursor/
+
+# Local verify harness outputs (may contain paths; keep redacted)
+.verify/
+
+# Local audit dumps (may contain usage numbers)
+.audit/

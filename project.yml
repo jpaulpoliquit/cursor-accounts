@@ -1,0 +1,150 @@
+name: CursorBar
+options:
+  bundleIdPrefix: app.cursorbar
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+settings:
+  SWIFT_VERSION: "5.10"
+  MACOSX_DEPLOYMENT_TARGET: "14.0"
+  # Stable Apple Development signing. Ad-hoc CDHash DRs change every build and
+  # re-prompt Keychain ACL for app.cursorbar on every launch.
+  DEVELOPMENT_TEAM: 8DF2GCMHK5
+  CODE_SIGN_STYLE: Automatic
+  CODE_SIGN_IDENTITY: Apple Development
+targets:
+  CursorBarDomain:
+    type: framework
+    platform: macOS
+    sources:
+      - path: Sources/Domain
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.cursorbar.domain
+        PRODUCT_NAME: CursorBarDomain
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+        DEVELOPMENT_TEAM: 8DF2GCMHK5
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+  CursorBarAdapters:
+    type: framework
+    platform: macOS
+    sources:
+      - path: Sources/Adapters
+    dependencies:
+      - target: CursorBarDomain
+      - sdk: libsqlite3.tbd
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.cursorbar.adapters
+        PRODUCT_NAME: CursorBarAdapters
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+        SWIFT_STRICT_CONCURRENCY: complete
+        DEVELOPMENT_TEAM: 8DF2GCMHK5
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+  CursorBar:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/App
+    dependencies:
+      - target: CursorBarDomain
+      - target: CursorBarAdapters
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.cursorbar
+        PRODUCT_NAME: CursorBar
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: CursorBar
+        INFOPLIST_KEY_CFBundleName: CursorBar
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        COMBINE_HIDPI_IMAGES: YES
+        CODE_SIGN_ENTITLEMENTS: CursorBar.entitlements
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_TESTABILITY: YES
+        DEVELOPMENT_TEAM: 8DF2GCMHK5
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+    scheme:
+      testTargets:
+        - CursorBarDomainTests
+        - CursorBarAdaptersTests
+        - CursorBarAppTests
+  CursorBarDomainTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/DomainTests
+        excludes:
+          - "**/*.disabled"
+    dependencies:
+      - target: CursorBarDomain
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.cursorbar.domain.tests
+        GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_TEAM: 8DF2GCMHK5
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+  CursorBarAdaptersTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/AdaptersTests
+        excludes:
+          - "**/*.disabled"
+    dependencies:
+      - target: CursorBarAdapters
+      - target: CursorBarDomain
+      - sdk: libsqlite3.tbd
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.cursorbar.adapters.tests
+        GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_TEAM: 8DF2GCMHK5
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+  CursorBarAppTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/AppTests
+        excludes:
+          - "**/*.disabled"
+    dependencies:
+      - target: CursorBar
+      - target: CursorBarAdapters
+      - target: CursorBarDomain
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.cursorbar.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_TESTABILITY: YES
+        DEVELOPMENT_TEAM: 8DF2GCMHK5
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+schemes:
+  CursorBar:
+    build:
+      targets:
+        CursorBar: all
+        CursorBarDomain: all
+        CursorBarAdapters: all
+        CursorBarDomainTests: [test]
+        CursorBarAdaptersTests: [test]
+        CursorBarAppTests: [test]
+    test:
+      targets:
+        - CursorBarDomainTests
+        - CursorBarAdaptersTests
+        - CursorBarAppTests

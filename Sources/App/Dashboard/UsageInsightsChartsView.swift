@@ -1,0 +1,258 @@
+import Charts
+import CursorBarDomain
+import SwiftUI
+
+/// 24-hour and daily activity charts with precomputed hover inspection + VoiceOver lists.
+struct UsageInsightsChartsView: View {
+    let insights: ActivityInsights
+    let accountLabels: [SeatID: String]
+
+    @State private var inspectionIndex: ActivityInspectionIndex
+    @State private var selectedHour: Double?
+    @State private var selectedPeriodLabel: String?
+
+    init(insights: ActivityInsights, accountLabels: [SeatID: String] = [:]) {
+        self.insights = insights
+        self.accountLabels = accountLabels
+        _inspectionIndex = State(
+            initialValue: ActivityInspectionIndex(
+                insights: insights,
+                accountLabels: accountLabels
+            )
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: CursorProfile.sectionSpacing) {
+            UsageActivityHeatmapView(
+                days: insights.days,
+                range: insights.range,
+                timeZone: timeZone
+            )
+            whenYouWork
+            dailyActivity
+        }
+        .onChange(of: insights) { _, _ in
+            rebuildInspectionIndex(clearSelection: true)
+        }
+        .onChange(of: accountLabels) { _, _ in
+            rebuildInspectionIndex(clearSelection: true)
+        }
+    }
+
+    private func rebuildInspectionIndex(clearSelection: Bool) {
+        inspectionIndex = ActivityInspectionIndex(
+            insights: insights,
+            accountLabels: accountLabels
+        )
+        if clearSelection {
+            selectedHour = nil
+            selectedPeriodLabel = nil
+        }
+    }
+
+    private var timeZone: TimeZone {
+        TimeZone(identifier: insights.timeZoneIdentifier) ?? .current
+    }
+
+    private var whenYouWork: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("When you work")
+                .font(CursorProfile.Font.section)
+            if insights.hourOfDayCounts.allSatisfy({ $0 == 0 }) {
+                Text("No request activity in this range.")
+                    .font(CursorProfile.Font.meta)
+                    .foregroundStyle(.secondary)
+            } else {
+                Chart(Array(insights.hourOfDayCounts.enumerated()), id: \.offset) { item in
+                    BarMark(
+                        x: .value("Hour", item.offset),
+                        y: .value("Requests", item.element)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [CursorProfile.peachMid, CursorProfile.peach],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    if let hour = selectedHourInspection {
+                        RuleMark(x: .value("Selected", hour.hour))
+                            .foregroundStyle(Color.secondary.opacity(0.55))
+                            .lineStyle(StrokeStyle(lineWidth: 1))
+                    }
+                }
+                .chartXScale(domain: 0...23)
+                .chartYScale(domain: 0...max(1, insights.hourOfDayCounts.max() ?? 0))
+                .chartXSelection(value: $selectedHour)
+                .chartXAxis {
+                    AxisMarks(values: [0, 6, 12, 18, 23]) { value in
+                        AxisValueLabel {
+                            if let hour = value.as(Int.self) {
+                                Text(ActivityInsights.clockLabel(hour))
+                                    .font(.caption2)
+                            }
+                        }
+                    }
+                }
+                .chartYAxis(.hidden)
+                .frame(height: 88)
+                .chartOverlay { proxy in
+                    GeometryReader { geo in
+                        hourTooltip(proxy: proxy, geo: geo)
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(insights.peakHourRangeAccessibility)
+                .background(alignment: .topLeading) { hourAccessibilityList }
+            }
+
+            Text(insights.peakHourRangeAccessibility)
+                .font(CursorProfile.Font.meta)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var dailyActivity: some View {
+        let points = ActivityChartAggregation.points(from: insights)
+        let usesMonths = inspectionIndex.usesMonthBuckets
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(usesMonths ? "Activity by month" : "Daily activity")
+                .font(CursorProfile.Font.section)
+            if points.isEmpty {
+                Text("No active days in this range.")
+                    .font(CursorProfile.Font.meta)
+                    .foregroundStyle(.secondary)
+            } else {
+                Chart(points) { point in
+                    BarMark(
+                        x: .value("Period", point.label),
+                        y: .value("Requests", point.requestCount)
+                    )
+                    .foregroundStyle(CursorProfile.peachDeep)
+                    if let selected = selectedPeriodInspection, selected.label == point.label {
+                        RuleMark(x: .value("Selected", point.label))
+                            .foregroundStyle(Color.secondary.opacity(0.55))
+                            .lineStyle(StrokeStyle(lineWidth: 1))
+                    }
+                }
+                .chartXSelection(value: $selectedPeriodLabel)
+                .chartYScale(domain: 0...max(1, points.map(\.requestCount).max() ?? 0))
+                .chartXAxis {
+                    AxisMarks { _ in
+                        AxisValueLabel()
+                            .font(.caption2)
+                    }
+                }
+                .chartYAxis(.hidden)
+                .frame(height: 100)
+                .chartOverlay { proxy in
+                    GeometryReader { geo in
+                        periodTooltip(proxy: proxy, geo: geo)
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "\(usesMonths ? "Monthly" : "Daily") activity, \(insights.activeDayCount) active days, \(insights.totalRequests) requests"
+                )
+                .background(alignment: .topLeading) { periodAccessibilityList }
+            }
+        }
+    }
+
+    private var selectedHourInspection: ActivityHourInspection? {
+        guard let selectedHour else { return nil }
+        return inspectionIndex.hour(nearest: selectedHour)
+    }
+
+    private var selectedPeriodInspection: ActivityPeriodInspection? {
+        inspectionIndex.period(nearestLabel: selectedPeriodLabel)
+    }
+
+    @ViewBuilder
+    private func hourTooltip(proxy: ChartProxy, geo: GeometryProxy) -> some View {
+        if let inspection = selectedHourInspection,
+           let anchor = proxy.plotFrame,
+           let xPos = proxy.position(forX: inspection.hour),
+           let frame = FiniteLayout.rect(geo[anchor])
+        {
+            clampedTooltip(lines: inspection.tooltipLines, xPos: xPos, frame: frame, width: 168)
+        }
+    }
+
+    @ViewBuilder
+    private func periodTooltip(proxy: ChartProxy, geo: GeometryProxy) -> some View {
+        if let inspection = selectedPeriodInspection,
+           let anchor = proxy.plotFrame,
+           let xPos = proxy.position(forX: inspection.label),
+           let frame = FiniteLayout.rect(geo[anchor])
+        {
+            clampedTooltip(
+                lines: inspection.tooltipLines(timeZone: timeZone, idleGap: insights.idleGap),
+                xPos: xPos,
+                frame: frame,
+                width: 240
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func clampedTooltip(
+        lines: [String],
+        xPos: CGFloat,
+        frame: CGRect,
+        width: CGFloat
+    ) -> some View {
+        if let x = FiniteLayout.dimension(xPos),
+           let width = FiniteLayout.dimension(width),
+           let originY = FiniteLayout.dimension(frame.minY + 52)
+        {
+            let centerX = frame.minX + x
+            let clampedX = min(
+                max(centerX, frame.minX + width / 2 + 8),
+                frame.maxX - width / 2 - 8
+            )
+            if let originX = FiniteLayout.dimension(clampedX) {
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
+                        Text(line)
+                            .font(index == 0 ? .caption.weight(.semibold) : .caption)
+                            .foregroundStyle(index == 0 ? .primary : .secondary)
+                            .monospacedDigit()
+                    }
+                }
+                .padding(8)
+                .frame(width: width, alignment: .leading)
+                .cursorProfilePaper(cornerRadius: 8)
+                .position(x: originX, y: originY)
+                .allowsHitTesting(false)
+            }
+        }
+    }
+
+    private var hourAccessibilityList: some View {
+        VStack(spacing: 0) {
+            ForEach(inspectionIndex.hours, id: \.hour) { hour in
+                Text(ActivityInsights.clockLabel(hour.hour))
+                    .accessibilityLabel(hour.accessibilityLabel)
+            }
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .accessibilityElement(children: .contain)
+        .accessibilitySortPriority(-1)
+    }
+
+    private var periodAccessibilityList: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(inspectionIndex.periods.enumerated()), id: \.offset) { _, period in
+                Text(period.label)
+                    .accessibilityLabel(period.accessibilityLabel(timeZone: timeZone))
+            }
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .accessibilityElement(children: .contain)
+        .accessibilitySortPriority(-1)
+    }
+}

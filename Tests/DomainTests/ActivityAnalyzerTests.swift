@@ -319,6 +319,61 @@ final class ActivityAnalyzerTests: XCTestCase {
         XCTAssertEqual(withDays.totalAgentTimeMs, 3_600_000 + (90 * 60_000))
         XCTAssertEqual(withDays.trailingAgentTimeMs(now: now, timeZone: taipei), 90 * 60_000)
         XCTAssertEqual(withDays.trailingSpanMs(now: now, timeZone: taipei), 2 * 3_600_000)
+        XCTAssertEqual(withDays.trailingAverageAgentTimeMs(now: now, timeZone: taipei), 90 * 60_000)
+        XCTAssertEqual(withDays.trailingMaxAgentTimeMs(now: now, timeZone: taipei), 90 * 60_000)
+    }
+
+    func testTrailingAverageAndMaxIgnoreIdleDaysAndOlderHistory() {
+        let old = DayActivity(
+            day: ActivityDayKey(year: 2026, month: 6, day: 1),
+            requestCount: 2,
+            tokens: 10,
+            spanMs: 8 * 3_600_000,
+            estimatedActiveMs: 8 * 3_600_000
+        )
+        let short = DayActivity(
+            day: ActivityDayKey(year: 2026, month: 8, day: 10),
+            requestCount: 1,
+            tokens: 4,
+            spanMs: 30 * 60_000,
+            estimatedActiveMs: 30 * 60_000
+        )
+        let long = DayActivity(
+            day: ActivityDayKey(year: 2026, month: 8, day: 20),
+            requestCount: 4,
+            tokens: 20,
+            spanMs: 3 * 3_600_000,
+            estimatedActiveMs: 90 * 60_000
+        )
+        let insights = ActivityAnalyzer.analyze(
+            seats: [.init(seatID: .seat1, requests: [], truncated: false, reportedTotal: 0)],
+            scope: .account(.seat1),
+            range: .month(YearMonth(year: 2026, month: 8)),
+            timeZone: taipei,
+            now: date(2026, 8, 31, 12, 0),
+            requestedSeatCount: 1
+        )
+        let withDays = ActivityInsights(
+            scope: insights.scope,
+            range: insights.range,
+            timeZoneIdentifier: insights.timeZoneIdentifier,
+            idleGap: insights.idleGap,
+            hourOfDayCounts: insights.hourOfDayCounts,
+            hourOfDayTokens: insights.hourOfDayTokens,
+            dayOfWeekCounts: insights.dayOfWeekCounts,
+            days: [old, short, long],
+            totalRequests: 7,
+            totalTokens: 34,
+            activeDayCount: 3,
+            medianDailySpanMs: insights.medianDailySpanMs,
+            medianEstimatedActiveMs: insights.medianEstimatedActiveMs,
+            coverage: insights.coverage,
+            monthOverMonth: nil,
+            estimatedActiveIsPerSeatSum: false
+        )
+        let now = date(2026, 8, 31, 12, 0)
+        XCTAssertEqual(withDays.trailingAverageAgentTimeMs(now: now, timeZone: taipei), 60 * 60_000)
+        XCTAssertEqual(withDays.trailingMaxAgentTimeMs(now: now, timeZone: taipei), 90 * 60_000)
     }
 
     // MARK: - Fixtures

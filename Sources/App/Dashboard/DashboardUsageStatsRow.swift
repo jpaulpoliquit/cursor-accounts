@@ -32,6 +32,16 @@ struct DashboardUsageStatsRow: View {
             value: thirtyDayValue
         )
         .help(thirtyDayHelp)
+        CursorProfileStat(
+            label: "Avg day · 30 days",
+            value: averageDayValue
+        )
+        .help(averageDayHelp)
+        CursorProfileStat(
+            label: "Max day · 30 days",
+            value: maxDayValue
+        )
+        .help(maxDayHelp)
     }
 
     private var timeZone: TimeZone {
@@ -59,5 +69,29 @@ struct DashboardUsageStatsRow: View {
     private var thirtyDayHelp: String {
         let base = insights?.agentTimeHelp ?? "Estimated time agents were active."
         return "\(base) Last 30 local days."
+    }
+
+    private var averageDayValue: String {
+        guard let insights,
+              let ms = insights.trailingAverageAgentTimeMs(now: now, timeZone: timeZone)
+        else { return "—" }
+        return ActivityInsights.durationCompact(ms)
+    }
+
+    private var maxDayValue: String {
+        guard let insights,
+              let ms = insights.trailingMaxAgentTimeMs(now: now, timeZone: timeZone)
+        else { return "—" }
+        return ActivityInsights.durationCompact(ms)
+    }
+
+    private var averageDayHelp: String {
+        let base = insights?.agentTimeHelp ?? "Estimated time agents were active."
+        return "\(base) Average on days you were active in the last 30 local days."
+    }
+
+    private var maxDayHelp: String {
+        let base = insights?.agentTimeHelp ?? "Estimated time agents were active."
+        return "\(base) Longest single day in the last 30 local days."
     }
 }

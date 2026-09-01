@@ -70,20 +70,20 @@ struct UsageInsightsChartsView: View {
             } else {
                 Chart(Array(insights.hourOfDayCounts.enumerated()), id: \.offset) { item in
                     BarMark(
-                        x: .value("Hour", item.offset),
-                        y: .value("Requests", item.element),
-                        width: .ratio(0.68)
+                        xStart: .value("Hour start", Double(item.offset) - 0.34),
+                        xEnd: .value("Hour end", Double(item.offset) + 0.34),
+                        y: .value("Requests", Double(item.element))
                     )
                     .foregroundStyle(CursorProfile.chartAccent)
                     .cornerRadius(2)
                     if let hour = selectedHourInspection {
-                        RuleMark(x: .value("Selected", hour.hour))
+                        RuleMark(x: .value("Selected", Double(hour.hour)))
                             .foregroundStyle(Color.secondary.opacity(0.55))
                             .lineStyle(StrokeStyle(lineWidth: 1))
                     }
                 }
                 .chartXScale(domain: -0.5...23.5)
-                .chartYScale(domain: 0...max(1, insights.hourOfDayCounts.max() ?? 0))
+                .chartYScale(domain: 0...Double(max(1, insights.hourOfDayCounts.max() ?? 0)))
                 .chartXSelection(value: $selectedHour)
                 .onContinuousHover { phase in
                     if case .ended = phase {
@@ -186,7 +186,7 @@ struct UsageInsightsChartsView: View {
     private func hourTooltip(proxy: ChartProxy, geo: GeometryProxy) -> some View {
         if let inspection = selectedHourInspection,
            let anchor = proxy.plotFrame,
-           let xPos = proxy.position(forX: inspection.hour),
+           let xPos = proxy.position(forX: Double(inspection.hour)),
            let frame = FiniteLayout.rect(geo[anchor])
         {
             clampedTooltip(lines: inspection.tooltipLines, xPos: xPos, frame: frame, width: 168)

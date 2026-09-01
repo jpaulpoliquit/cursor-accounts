@@ -22,6 +22,24 @@ extension ActivityInsights {
             .reduce(0) { $0 + $1.estimatedActiveMs }
     }
 
+    /// Mean estimated agent time on days that have activity in the trailing window.
+    public func trailingAverageAgentTimeMs(
+        dayCount: Int = 30,
+        now: Date,
+        timeZone: TimeZone
+    ) -> Int64? {
+        let recent = trailingDays(dayCount: dayCount, now: now, timeZone: timeZone)
+        guard !recent.isEmpty else { return nil }
+        let total = recent.reduce(0) { $0 + $1.estimatedActiveMs }
+        return total / Int64(recent.count)
+    }
+
+    public func trailingMaxAgentTimeMs(dayCount: Int = 30, now: Date, timeZone: TimeZone) -> Int64? {
+        trailingDays(dayCount: dayCount, now: now, timeZone: timeZone)
+            .map(\.estimatedActiveMs)
+            .max()
+    }
+
     public func trailingSpanMs(dayCount: Int = 30, now: Date, timeZone: TimeZone) -> Int64 {
         trailingDays(dayCount: dayCount, now: now, timeZone: timeZone)
             .reduce(0) { $0 + $1.calendarSpanMs }

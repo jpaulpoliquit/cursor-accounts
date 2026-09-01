@@ -10,14 +10,20 @@ struct UsageActivityHeatmapView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hoveredID: String?
-    @State private var cellFrames: [String: CGRect] = [:]
 
     private let cell: CGFloat = 10
     private let gap: CGFloat = 2
     private let weekdayGutterWidth: CGFloat = 14
 
     var body: some View {
-        if grid.isEmpty {
+        let layout = HeatmapLayout.make(
+            days: days,
+            range: range,
+            timeZone: timeZone,
+            cell: cell,
+            gap: gap
+        )
+        if layout.grid.isEmpty {
             EmptyView()
         } else {
             VStack(alignment: .leading, spacing: 8) {
@@ -26,15 +32,7 @@ struct UsageActivityHeatmapView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 6) {
                         weekdayGutter
-                        VStack(alignment: .leading, spacing: gap) {
-                            monthRow
-                            weeksRow
-                        }
-                    }
-                    .coordinateSpace(name: "heat")
-                    .onPreferenceChange(HeatCellFrameKey.self) { cellFrames = $0 }
-                    .overlay {
-                        hoverCard
+                        canvas(layout)
                     }
                 }
                 .scrollClipDisabled()
@@ -57,70 +55,57 @@ struct UsageActivityHeatmapView: View {
         .accessibilityHidden(true)
     }
 
-    private var monthRow: some View {
-        HStack(alignment: .center, spacing: gap) {
-            ForEach(Array(grid.enumerated()), id: \.offset) { _, week in
-                Color.clear
-                    .frame(width: cell, height: 12)
-                    .overlay(alignment: .leading) {
-                        if !week.monthLabel.isEmpty {
-                            Text(week.monthLabel)
-                                .font(.system(size: 10, weight: .regular))
-                                .foregroundStyle(.secondary)
-                                .fixedSize()
-                        }
-                    }
+    private func canvas(_ layout: HeatmapLayout) -> some View {
+        Canvas { context, _ in
+            drawHeatmap(context: context, layout: layout)
+        }
+        .frame(width: layout.weeksWidth, height: layout.height)
+        .onContinuousHover { phase in
+            switch phase {
+            case .active(let point):
+                hoveredID = layout.cell(at: point)?.id
+            case .ended:
+                hoveredID = nil
             }
         }
-        .accessibilityHidden(true)
-    }
-
-    private var weeksRow: some View {
-        HStack(alignment: .top, spacing: gap) {
-            ForEach(Array(grid.enumerated()), id: \.offset) { _, week in
-                VStack(spacing: gap) {
-                    ForEach(week.cells) { item in
-                        heatCell(item)
-                    }
-                }
-            }
+        .overlay {
+            hoverCard(layout)
         }
     }
 
-    private func heatCell(_ item: HeatCell) -> some View {
-        let hovered = hoveredID == item.id
-        return Circle()
-            .fill(fill(for: item.requests))
-            .frame(width: cell, height: cell)
-            .scaleEffect(hovered && item.requests > 0 && !reduceMotion ? 1.08 : 1)
-            .brightness(hovered && item.requests > 0 ? hoverBrightness : 0)
-            .animation(
-                reduceMotion ? nil : .easeInOut(duration: 0.15),
-                value: hovered
-            )
-            .background {
-                GeometryReader { geo in
-                    Color.clear.preference(
-                        key: HeatCellFrameKey.self,
-                        value: [item.id: geo.frame(in: .named("heat"))]
-                    )
-                }
+    private func drawHeatmap(context: GraphicsContext, layout: HeatmapLayout) {
+        for (weekIndex, week) in layout.grid.enumerated() {
+            if !week.monthLabel.isEmpty {
+                let origin = layout.cellOrigin(week: weekIndex, row: 0)
+                context.draw(
+                    Text(week.monthLabel)
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundColor(.secondary),
+                    at: CGPoint(x: origin.x, y: 6),
+                    anchor: .leading
+                )
             }
-            .onHover { hovering in
-                if hovering {
-                    hoveredID = item.id
-                } else if hoveredID == item.id {
-                    hoveredID = nil
-                }
+            for (row, item) in week.cells.enumerated() {
+                let origin = layout.cellOrigin(week: weekIndex, row: row)
+                let hot = hoveredID == item.id && item.requests > 0
+                let scale: CGFloat = hot && !reduceMotion ? 1.08 : 1
+                let side = cell * scale
+                let rect = CGRect(
+                    x: origin.x + (cell - side) / 2,
+                    y: origin.y + (cell - side) / 2,
+                    width: side,
+                    height: side
+                )
+                context.fill(Path(ellipseIn: rect), with: .color(layout.fill(item, scheme: colorScheme)))
             }
-            .accessibilityHidden(true)
+        }
     }
 
     @ViewBuilder
-    private var hoverCard: some View {
+    private func hoverCard(_ layout: HeatmapLayout) -> some View {
         if let id = hoveredID,
-           let frame = cellFrames[id],
-           let item = grid.flatMap(\.cells).first(where: { $0.id == id }),
+           let frame = layout.frame(of: id),
+           let item = layout.cell(id: id),
            item.requests > 0
         {
             CursorProfileHoverCard(
@@ -130,10 +115,6 @@ struct UsageActivityHeatmapView: View {
             )
             .position(x: frame.midX, y: max(22, frame.minY - 26))
         }
-    }
-
-    private var hoverBrightness: Double {
-        colorScheme == .dark ? 0.10 : -0.05
     }
 
     private func hoverTitle(_ item: HeatCell) -> String {
@@ -155,24 +136,8 @@ struct UsageActivityHeatmapView: View {
         return date.formatted(.dateTime.month(.abbreviated).day().year())
     }
 
-    private func fill(for requests: Int) -> Color {
-        guard peak > 0 else { return CursorProfile.emptyCell(colorScheme) }
-        return CursorProfile.activityFill(
-            normalized: Double(requests) / Double(peak),
-            scheme: colorScheme
-        )
-    }
-
-    private var peak: Int {
-        days.map(\.requestCount).max() ?? 0
-    }
-
     private var accessibilitySummary: String {
         "Activity heatmap, \(days.filter { $0.requestCount > 0 }.count) active days"
-    }
-
-    private var grid: [HeatWeek] {
-        Self.buildGrid(days: days, range: range, timeZone: timeZone)
     }
 
     static func buildGrid(
@@ -274,7 +239,6 @@ struct UsageActivityHeatmapView: View {
         ["M", "", "W", "", "F", "", ""]
     }
 
-    /// Monday-first short weekday names. Tests and accessibility still use these.
     static func weekdayAbbreviations(timeZone: TimeZone, locale: Locale = .current) -> [String] {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
@@ -314,6 +278,97 @@ struct UsageActivityHeatmapView: View {
     }
 }
 
+struct HeatmapLayout: Equatable {
+    let grid: [HeatWeek]
+    let peak: Int
+    let cell: CGFloat
+    let gap: CGFloat
+    let monthRowHeight: CGFloat
+
+    var weeksWidth: CGFloat {
+        let n = CGFloat(grid.count)
+        guard n > 0 else { return 0 }
+        return n * cell + (n - 1) * gap
+    }
+
+    var height: CGFloat {
+        monthRowHeight + gap + 7 * cell + 6 * gap
+    }
+
+    func cellOrigin(week: Int, row: Int) -> CGPoint {
+        CGPoint(
+            x: CGFloat(week) * (cell + gap),
+            y: monthRowHeight + gap + CGFloat(row) * (cell + gap)
+        )
+    }
+
+    func cell(at point: CGPoint) -> HeatCell? {
+        guard !grid.isEmpty else { return nil }
+        let stride = cell + gap
+        let week = Int(floor(point.x / stride))
+        let row = Int(floor((point.y - monthRowHeight - gap) / stride))
+        guard grid.indices.contains(week), (0..<7).contains(row) else { return nil }
+        let origin = cellOrigin(week: week, row: row)
+        let rect = CGRect(origin: origin, size: CGSize(width: cell, height: cell))
+        guard rect.contains(point) else { return nil }
+        let cells = grid[week].cells
+        guard cells.indices.contains(row) else { return nil }
+        return cells[row]
+    }
+
+    func cell(id: String) -> HeatCell? {
+        for week in grid {
+            if let match = week.cells.first(where: { $0.id == id }) {
+                return match
+            }
+        }
+        return nil
+    }
+
+    func frame(of id: String) -> CGRect? {
+        for (weekIndex, week) in grid.enumerated() {
+            if let row = week.cells.firstIndex(where: { $0.id == id }) {
+                return CGRect(
+                    origin: cellOrigin(week: weekIndex, row: row),
+                    size: CGSize(width: cell, height: cell)
+                )
+            }
+        }
+        return nil
+    }
+
+    func fill(_ item: HeatCell, scheme: ColorScheme) -> Color {
+        guard peak > 0 else { return CursorProfile.emptyCell(scheme) }
+        return CursorProfile.activityFill(
+            normalized: Double(item.requests) / Double(peak),
+            scheme: scheme
+        )
+    }
+
+    static func make(
+        days: [DayActivity],
+        range: UsageRange,
+        timeZone: TimeZone,
+        cell: CGFloat,
+        gap: CGFloat,
+        now: Date = Date()
+    ) -> HeatmapLayout {
+        let grid = UsageActivityHeatmapView.buildGrid(
+            days: days,
+            range: range,
+            timeZone: timeZone,
+            now: now
+        )
+        return HeatmapLayout(
+            grid: grid,
+            peak: days.map(\.requestCount).max() ?? 0,
+            cell: cell,
+            gap: gap,
+            monthRowHeight: 12
+        )
+    }
+}
+
 struct HeatWeek: Equatable {
     let cells: [HeatCell]
     let monthLabel: String
@@ -324,12 +379,4 @@ struct HeatCell: Identifiable, Equatable {
     let requests: Int
     let tokens: Int64
     let help: String
-}
-
-private struct HeatCellFrameKey: PreferenceKey {
-    static var defaultValue: [String: CGRect] = [:]
-
-    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
-        value.merge(nextValue(), uniquingKeysWith: { $1 })
-    }
 }

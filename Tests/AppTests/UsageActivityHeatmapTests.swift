@@ -193,6 +193,35 @@ final class UsageActivityHeatmapTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(labels.filter { $0 == "J" }.count, 2)
     }
 
+    func testLayoutHitTestUsesCellRectsNotStrideGaps() {
+        let day = DayActivity(
+            day: ActivityDayKey(year: 2026, month: 2, day: 2),
+            requestCount: 4,
+            tokens: 8,
+            spanMs: 0,
+            estimatedActiveMs: 0
+        )
+        let range = UsageRange.month(YearMonth(year: 2026, month: 2))
+        let layout = HeatmapLayout.make(
+            days: [day],
+            range: range,
+            timeZone: tz,
+            cell: 10,
+            gap: 2,
+            now: now
+        )
+        XCTAssertFalse(layout.grid.isEmpty)
+        let origin = layout.cellOrigin(week: 0, row: 0)
+        let inside = CGPoint(x: origin.x + 5, y: origin.y + 5)
+        XCTAssertNotNil(layout.cell(at: inside))
+        let inGap = CGPoint(x: origin.x + 11, y: origin.y + 5)
+        XCTAssertNil(layout.cell(at: inGap))
+        XCTAssertNil(layout.cell(at: CGPoint(x: 5, y: 4)))
+        if let id = layout.cell(at: inside)?.id {
+            XCTAssertEqual(layout.frame(of: id)?.origin, origin)
+        }
+    }
+
     func testWeekdayAbbreviationsAreMondayFirst() {
         let labels = UsageActivityHeatmapView.weekdayAbbreviations(
             timeZone: tz,

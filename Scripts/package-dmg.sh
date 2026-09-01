@@ -87,7 +87,7 @@ resolve_app() {
   fi
 
   mkdir -p "${DERIVED}"
-  echo "+ xcodebuild -scheme ${SCHEME} -configuration ${CONFIGURATION} build"
+  echo "+ xcodebuild -scheme ${SCHEME} -configuration ${CONFIGURATION} build" >&2
   set +e
   xcodebuild \
     -scheme "${SCHEME}" \

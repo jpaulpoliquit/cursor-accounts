@@ -12,13 +12,13 @@ Requires macOS 14 or later.
 
 ### Disk image (for other people)
 
-1. Open `Cursor-Accounts-0.2.0.dmg`.
+1. Open `Cursor-Accounts-0.2.1.dmg`.
 2. Drag **Cursor Accounts** onto **Applications**.
 3. Open Cursor Accounts from Applications. It is a menu-bar agent (`LSUIElement`); look for the yellow mark with the active account and usage.
 
 ```bash
 ./Scripts/package-dmg.sh
-# writes dist/Cursor-Accounts-0.2.0.dmg  (gitignored — do not commit the binary)
+# writes dist/Cursor-Accounts-0.2.1.dmg  (gitignored — do not commit the binary)
 ```
 
 The image contains Cursor Accounts, an Applications shortcut, and a short Read Me.

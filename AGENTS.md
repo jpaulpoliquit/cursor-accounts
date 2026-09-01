@@ -24,7 +24,7 @@ Xcode 15+ / Xcode 27 beta. When `/Applications/Xcode-beta.app` is present, scrip
 | Script | Role |
 | --- | --- |
 | `Scripts/install.sh` | xcodegen if needed, Release xcodebuild, `ditto` into `/Applications` (or `$INSTALL_DIR`), `xattr -cr`, PATH shortcut `cursor-accounts`. After a successful run, `/Applications/Cursor Accounts.app` exists and `cursor-accounts` runs from a new terminal. Does not leave the user in DerivedData. |
-| `Scripts/package-dmg.sh` | Share path for strangers. Builds Release and writes `dist/Cursor-Accounts-0.2.1.dmg` with the app plus an `/Applications` symlink. |
+| `Scripts/package-dmg.sh` | Share path for strangers. Builds Release and writes `dist/Cursor-Accounts-0.0.1.dmg` with the app plus an `/Applications` symlink. |
 | `Scripts/verify.sh` | Verify harness. Modes: `unit` (default), `adapters`, `smoke`, `live-ro`, `usage-restart`. `live-write` is not implemented. |
 
 Do not run `verify.sh live-ro` or `live-write` unless the user explicitly asks. Smoke never relaunches Cursor IDE.
@@ -39,7 +39,7 @@ Strangers get a disk image, not a tour of DerivedData.
 
 ```bash
 ./Scripts/install.sh          # /Applications/Cursor Accounts.app
-./Scripts/package-dmg.sh      # dist/Cursor-Accounts-0.2.1.dmg
+./Scripts/package-dmg.sh      # dist/Cursor-Accounts-0.0.1.dmg
 ```
 
 `APP_PATH="/Applications/Cursor Accounts.app" ./Scripts/package-dmg.sh` packages an already-built app and skips xcodebuild.

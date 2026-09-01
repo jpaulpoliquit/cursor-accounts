@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build Cursor Accounts (Release) and write dist/Cursor-Accounts-0.2.1.dmg
+# Build Cursor Accounts (Release) and write dist/Cursor-Accounts-0.0.1.dmg
 # with the .app, an /Applications symlink, and a short Read Me.
 # Set APP_PATH to an existing Cursor Accounts.app to skip xcodebuild.
 set -euo pipefail
@@ -12,7 +12,7 @@ APP_NAME="Cursor Accounts.app"
 EXECUTABLE="Cursor Accounts"
 SCHEME="Cursor Accounts"
 CONFIGURATION="Release"
-VERSION="${VERSION:-0.2.1}"
+VERSION="${VERSION:-0.0.1}"
 VOL_NAME="Cursor Accounts"
 DIST_DIR="${ROOT}/dist"
 DMG_NAME="Cursor-Accounts-${VERSION}.dmg"

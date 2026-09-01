@@ -202,7 +202,7 @@ The scheme and app are named Cursor Accounts. The Xcode project is still `Cursor
 
 ```bash
 ./Scripts/package-dmg.sh
-# writes dist/Cursor-Accounts-0.2.1.dmg
+# writes dist/Cursor-Accounts-0.0.1.dmg
 ```
 
 `dist/` is gitignored. Do not commit the DMG.

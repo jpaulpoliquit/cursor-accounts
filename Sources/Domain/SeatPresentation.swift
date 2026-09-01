@@ -163,6 +163,20 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
         }
     }
 
+    /// Second line under the title. Email when unmasked; Cursor name when a nickname is set and email is hidden.
+    public var identitySubtitle: String? {
+        switch auth {
+        case .signedIn, .needsReauth:
+            return SeatUserLabelResolver.secondary(
+                userLabel: userLabel,
+                identity: label,
+                revealedEmail: revealedEmail
+            )
+        case .signedOut, .signingIn:
+            return nil
+        }
+    }
+
     /// Compact menu-root account name. Full name stays in Dashboard / accessibility.
     public var menuCompactLabel: String {
         DisplayNameMenuFit.rootTitle(SeatUserLabelResolver.primary(userLabel: userLabel, identity: label))
@@ -223,16 +237,13 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
             parts.append(label.text)
         case .signedIn, .needsReauth:
             parts.append(SeatUserLabelResolver.primary(userLabel: userLabel, identity: label))
-            if let userLabel, userLabel.value != label.text {
-                parts.append(label.text)
+            if let identitySubtitle {
+                parts.append(identitySubtitle)
             }
             parts.append(authTitle)
         }
         if isDesktopBound {
             parts.append("Active")
-        }
-        if let revealedEmail {
-            parts.append(revealedEmail.value)
         }
         if let planName { parts.append(planName) }
         if let autoPercent {

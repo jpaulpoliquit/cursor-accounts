@@ -56,30 +56,38 @@ public struct AgentUsageReport: Sendable, Equatable, Codable {
     ) -> AgentUsageReport {
         if let summary = snapshot?.tokenSummary {
             let t = summary.totals
-            let lines = [
-                "input\t\(TokenCountFormat.compact(t.input))",
-                "output\t\(TokenCountFormat.compact(t.output))",
-                "cacheWrite\t\(TokenCountFormat.compact(t.cacheWrite))",
-                "cacheRead\t\(TokenCountFormat.compact(t.cacheRead))",
-                "total\t\(TokenCountFormat.compact(t.total))",
-            ]
+            let lines = CLITextTable.pairRows([
+                ("input", TokenCountFormat.compact(t.input)),
+                ("output", TokenCountFormat.compact(t.output)),
+                ("cacheWrite", TokenCountFormat.compact(t.cacheWrite)),
+                ("cacheRead", TokenCountFormat.compact(t.cacheRead)),
+                ("total", TokenCountFormat.compact(t.total)),
+            ])
             return AgentUsageReport(group: .tokens, lines: lines, available: true)
         }
         if let seatID, let card = cards[seatID] {
             let usage = card.period.usage
-            let lines = [
-                "cursor\t\(Int(usage.autoPercentUsed.percent.rounded()))%",
-                "api\t\(Int(usage.apiPercentUsed.percent.rounded()))%",
-                "total\t\(Int(usage.totalPercentUsed.percent.rounded()))%",
-            ]
+            let lines = CLITextTable.pairRows([
+                ("cursor", "\(Int(usage.autoPercentUsed.percent.rounded()))%"),
+                ("api", "\(Int(usage.apiPercentUsed.percent.rounded()))%"),
+                ("total", "\(Int(usage.totalPercentUsed.percent.rounded()))%"),
+            ])
             return AgentUsageReport(group: .tokens, lines: lines, available: true)
         }
         if seatID == nil, !cards.isEmpty {
-            let lines = cards.keys.sorted().compactMap { id -> String? in
+            let body = cards.keys.sorted().compactMap { id -> [String]? in
                 guard let card = cards[id] else { return nil }
                 let usage = card.period.usage
-                return "\(id.rawValue)\tCursor \(Int(usage.autoPercentUsed.percent.rounded()))%\tAPI \(Int(usage.apiPercentUsed.percent.rounded()))%"
+                return [
+                    id.rawValue,
+                    "\(Int(usage.autoPercentUsed.percent.rounded()))%",
+                    "\(Int(usage.apiPercentUsed.percent.rounded()))%",
+                ]
             }
+            let lines = CLITextTable.alignedRows(
+                headers: ["Account", "Cursor", "API"],
+                rows: body
+            )
             return AgentUsageReport(group: .tokens, lines: lines, available: true)
         }
         return AgentUsageReport(group: .tokens, lines: [], available: false)
@@ -94,10 +102,10 @@ public struct AgentUsageReport: Sendable, Equatable, Codable {
             intent: \.modelIntent,
             displayName: \.displayName
         )
-        let lines = families.map { family in
+        let lines = CLITextTable.pairRows(families.map { family in
             let tokens = family.items.reduce(Int64(0)) { $0 + $1.buckets.total }
-            return "\(family.family.title)\t\(TokenCountFormat.compact(tokens))"
-        }
+            return (family.family.title, TokenCountFormat.compact(tokens))
+        })
         return AgentUsageReport(group: .family, lines: lines, available: true)
     }
 
@@ -105,12 +113,12 @@ public struct AgentUsageReport: Sendable, Equatable, Codable {
         guard let insights = snapshot?.insights else {
             return AgentUsageReport(group: .activity, lines: [], available: false)
         }
-        let lines = [
-            "requests\t\(insights.totalRequests)",
-            "tokens\t\(TokenCountFormat.compact(insights.totalTokens))",
-            "activeDays\t\(insights.activeDayCount)",
-            insights.peakHourRangeAccessibility,
-        ]
+        var lines = CLITextTable.pairRows([
+            ("requests", TokenCountFormat.grouped(insights.totalRequests)),
+            ("tokens", TokenCountFormat.compact(insights.totalTokens)),
+            ("activeDays", TokenCountFormat.grouped(insights.activeDayCount)),
+        ])
+        lines.append(insights.peakHourRangeAccessibility)
         return AgentUsageReport(group: .activity, lines: lines, available: true)
     }
 
@@ -118,13 +126,15 @@ public struct AgentUsageReport: Sendable, Equatable, Codable {
         guard let insights = snapshot?.insights else {
             return AgentUsageReport(group: .time, lines: [], available: false)
         }
-        var lines = [insights.agentTimeLabel]
+        var pairs: [(String, String)] = []
         if let active = insights.medianEstimatedActiveMs {
-            lines.append("medianAgent\t\(formatDuration(active))")
+            pairs.append(("medianAgent", formatDuration(active)))
         }
         if let span = insights.medianDailySpanMs {
-            lines.append("medianSpan\t\(formatDuration(span))")
+            pairs.append(("medianSpan", formatDuration(span)))
         }
+        var lines = [insights.agentTimeLabel]
+        lines.append(contentsOf: CLITextTable.pairRows(pairs))
         return AgentUsageReport(group: .time, lines: lines, available: true)
     }
 
@@ -132,10 +142,13 @@ public struct AgentUsageReport: Sendable, Equatable, Codable {
         guard let summary = snapshot?.tokenSummary else {
             return AgentUsageReport(group: .models, lines: [], available: false)
         }
-        let lines = summary.topLines.map { line in
-            let share = Int((line.share * 100).rounded())
-            return "\(line.title)\t\(TokenCountFormat.compact(line.tokens))\t\(share)%"
-        }
+        let lines = CLITextTable.alignedRows(
+            headers: ["Model", "Tokens", "Share"],
+            rows: summary.topLines.map { line in
+                let share = Int((line.share * 100).rounded())
+                return [line.title, TokenCountFormat.compact(line.tokens), "\(share)%"]
+            }
+        )
         return AgentUsageReport(group: .models, lines: lines, available: true)
     }
 

@@ -38,7 +38,11 @@ final class AgentAccountListTests: XCTestCase {
         XCTAssertTrue(table.contains("Work"))
         XCTAssertTrue(table.contains("john 5"))
         XCTAssertTrue(table.contains("jp@example.com"))
-        XCTAssertTrue(table.contains("EMAIL"))
+        XCTAssertTrue(table.contains("Email"))
+        XCTAssertTrue(table.contains("Name"))
+        let lines = table.split(separator: "\n")
+        XCTAssertGreaterThanOrEqual(lines.count, 3)
+        XCTAssertEqual(Set(lines.map(\.count)).count, 1)
         let encoded = try AgentAccountList.json(rows)
         XCTAssertTrue(encoded.contains("jp@example.com"))
     }

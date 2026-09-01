@@ -196,9 +196,10 @@ struct DashboardPageHeader: View {
     }
 
     private var teaserEmail: String? {
-        guard let email = activeAccount?.revealedEmail?.value else { return nil }
-        if email == accountName { return nil }
-        return email
+        guard let subtitle = activeAccount?.identitySubtitle, subtitle != accountName else {
+            return nil
+        }
+        return subtitle
     }
 
     private var showsUsageStats: Bool {

@@ -50,6 +50,19 @@ final class DashboardAccountFilterTests: XCTestCase {
         XCTAssertFalse(DashboardAccountFilter.matches(seat, query: "zzz"))
     }
 
+    func testLabeledMaskedSeatMatchesCursorName() {
+        let seat = SeatPresentation(
+            seatID: .seat1,
+            label: .displayName(DisplayName("john 5")!),
+            auth: .signedIn,
+            identityPolicy: .maskEmail,
+            userLabel: SeatUserLabel("Work")
+        )
+        XCTAssertTrue(DashboardAccountFilter.matches(seat, query: "Work"))
+        XCTAssertTrue(DashboardAccountFilter.matches(seat, query: "john"))
+        XCTAssertFalse(DashboardAccountFilter.matches(seat, query: "@"))
+    }
+
     func testEmptyReasonDistinguishesRosterFromFilter() {
         let seats = [seat(.seat1, name: "Ada")]
         XCTAssertEqual(

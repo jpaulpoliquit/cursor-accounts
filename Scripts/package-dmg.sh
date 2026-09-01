@@ -116,9 +116,11 @@ Cursor Accounts
 
 1. Drag Cursor Accounts to Applications.
 2. Open Cursor Accounts from Applications.
-   It is a menu-bar app — look for the yellow mark.
-3. On another Mac, first launch may need
-   Right-click → Open (Apple Development signing).
+   It lives in the menu bar. The Dock icon appears
+   while the dashboard is open.
+3. First launch is blocked until you allow it:
+   System Settings → Privacy & Security →
+   Open Anyway → Open Anyway again.
 
 Unofficial. Not affiliated with Cursor or Anysphere.
 EOF

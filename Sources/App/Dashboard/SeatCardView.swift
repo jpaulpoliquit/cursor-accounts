@@ -50,8 +50,8 @@ struct SeatCardView: View {
                 )
             }
 
-            if let email = seat.revealedEmail {
-                Text(email.value)
+            if let subtitle = seat.identitySubtitle {
+                Text(subtitle)
                     .font(CursorProfile.Font.handle)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

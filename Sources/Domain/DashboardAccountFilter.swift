@@ -8,7 +8,7 @@ public enum DashboardAccountFilter {
         if seat.dashboardTitle.localizedCaseInsensitiveContains(needle) {
             return true
         }
-        if let email = seat.revealedEmail?.value, email.localizedCaseInsensitiveContains(needle) {
+        if let subtitle = seat.identitySubtitle, subtitle.localizedCaseInsensitiveContains(needle) {
             return true
         }
         if let plan = seat.planBadgeTitle, plan.localizedCaseInsensitiveContains(needle) {

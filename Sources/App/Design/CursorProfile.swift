@@ -17,6 +17,8 @@ enum CursorProfile {
     static let pagePadding: CGFloat = 32
     static let radius: CGFloat = 8
     static let avatarSize: CGFloat = 40
+    /// Accounts table photo column. Wide enough for the circle, nothing else.
+    static let tableAvatarSize: CGFloat = 24
     static let columnMaxWidth: CGFloat = 720
     static let tableMaxWidth: CGFloat = 960
     static let railWidth: CGFloat = 176

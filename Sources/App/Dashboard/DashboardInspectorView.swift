@@ -60,8 +60,8 @@ struct DashboardInspectorView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(seat.dashboardTitle)
                             .font(CursorProfile.Font.handle)
-                        if let email = seat.revealedEmail {
-                            Text(email.value)
+                        if let subtitle = seat.identitySubtitle {
+                            Text(subtitle)
                                 .font(CursorProfile.Font.meta)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)

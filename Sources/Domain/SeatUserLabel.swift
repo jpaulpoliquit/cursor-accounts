@@ -25,10 +25,28 @@ public struct SeatUserLabel: Hashable, Codable, Sendable {
     }
 }
 
-/// Primary title prefers a nickname; identity stays available as secondary text.
+/// Primary title prefers a nickname. Second line is email when unmasked, else the Cursor name.
 public enum SeatUserLabelResolver {
     public static func primary(userLabel: SeatUserLabel?, identity: AccountLabel) -> String {
         userLabel?.value ?? identity.text
+    }
+
+    public static func secondary(
+        userLabel: SeatUserLabel?,
+        identity: AccountLabel,
+        revealedEmail: Email?
+    ) -> String? {
+        let title = primary(userLabel: userLabel, identity: identity)
+        if let email = revealedEmail?.value, email != title {
+            return email
+        }
+        if userLabel != nil {
+            let name = identity.text
+            if name != title {
+                return name
+            }
+        }
+        return nil
     }
 }
 

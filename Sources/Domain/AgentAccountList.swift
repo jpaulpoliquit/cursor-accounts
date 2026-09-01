@@ -78,24 +78,23 @@ public enum AgentAccountList {
     }
 
     public static func textTable(_ rows: [AgentAccountRow], now: Date = Date()) -> String {
-        guard !rows.isEmpty else { return "No connected accounts" }
-        var lines = ["LABEL\tEMAIL\tIDENTITY\tPLAN\tRENEWAL\tACTIVE\tCURSOR\tAPI"]
-        for row in rows {
-            let renewal = row.renewal.map { formatRenewal($0, now: now) } ?? "—"
-            lines.append(
-                [
-                    row.label,
-                    row.email ?? "—",
-                    row.identity,
-                    row.plan ?? "—",
-                    renewal,
-                    row.isActive ? "yes" : "no",
-                    row.cursorPercent.map { "\($0)%" } ?? "—",
-                    row.apiPercent.map { "\($0)%" } ?? "—",
-                ].joined(separator: "\t")
-            )
+        guard !rows.isEmpty else { return "No connected accounts." }
+        let body = rows.map { row in
+            [
+                row.label,
+                row.email ?? "—",
+                row.identity,
+                row.plan ?? "—",
+                row.renewal.map { formatRenewal($0, now: now) } ?? "—",
+                row.isActive ? "yes" : "no",
+                row.cursorPercent.map { "\($0)%" } ?? "—",
+                row.apiPercent.map { "\($0)%" } ?? "—",
+            ]
         }
-        return lines.joined(separator: "\n")
+        return CLITextTable.aligned(
+            headers: ["Label", "Email", "Name", "Plan", "Renewal", "Active", "Cursor", "API"],
+            rows: body
+        )
     }
 
     public static func json(_ rows: [AgentAccountRow]) throws -> String {

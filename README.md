@@ -1,98 +1,234 @@
 # Cursor Accounts
 
-Native macOS 14+ menu-bar app for managing Cursor accounts.
+Switch between multiple Cursor accounts without signing in and out every time.
 
-Unofficial and not affiliated with Cursor or Anysphere. MIT licensed.
+Cursor normally keeps one account signed in at a time. Cursor Accounts is a macOS 14+ menu-bar app that keeps your accounts together and switches Cursor between them for you.
 
-The Finder name is **Cursor Accounts**. Bundle ID stays `app.cursorbar` so saved Keychain seats keep working.
+It also shows usage, reset dates, and optional labels so you can tell accounts apart. You need Cursor installed.
 
-## Get Cursor Accounts
+## Install
 
-Requires macOS 14 or later.
+### Download the app
 
-### Disk image (for other people)
+![Latest release](https://img.shields.io/github/v/release/jpaulpoliquit/cursor-accounts)
 
-1. Open `Cursor-Accounts-0.2.1.dmg`.
-2. Drag **Cursor Accounts** onto **Applications**.
-3. Open Cursor Accounts from Applications. It is a menu-bar agent (`LSUIElement`); look for the yellow mark with the active account and usage.
+1. Download `Cursor-Accounts-*.dmg` from the [latest release](https://github.com/jpaulpoliquit/cursor-accounts/releases/latest).
+2. Drag Cursor Accounts into Applications.
+3. Open it from Applications.
+
+### Allow it on first launch
+
+macOS may block the app the first time you open it because this build is Apple Development signed but not notarized.
+
+1. Open **System Settings → Privacy & Security**.
+2. Find **"Cursor Accounts.app" was blocked to protect your Mac**.
+3. Click **Open Anyway**.
+4. When macOS asks again, click **Open Anyway**.
+
+Do not choose Move to Trash.
+
+Open Cursor Accounts again from Applications.
+
+It runs from the menu bar as a small yellow Cursor mark. There is no permanent Dock icon. The Dock icon only appears while the dashboard is open.
+
+### Install from source
 
 ```bash
-./Scripts/package-dmg.sh
-# writes dist/Cursor-Accounts-0.2.1.dmg  (gitignored — do not commit the binary)
+brew install xcodegen
+./Scripts/install.sh
 ```
 
-The image contains Cursor Accounts, an Applications shortcut, and a short Read Me.
+This installs:
 
-Check for Updates reads the latest GitHub Release of this repo. The remote is private, so the app uses your local `gh auth` login and never embeds a token. Publish a release whose asset is `Cursor-Accounts-*.dmg`. The menu rechecks quietly once a day and turns into Update Available when a newer tag exists. It does not replace the app. View Release and Download DMG open the published GitHub files.
+- `Cursor Accounts.app` in `/Applications`
+- `cursor-accounts` on your PATH
 
-This build is signed with Apple Development, not Developer ID. On another Mac, Gatekeeper blocks the first launch until you right-click Cursor Accounts.app, choose Open, and confirm. Sparkle-style auto-replace needs Developer ID plus a public feed. That is not this build.
+Open a new terminal before using the CLI.
 
-### This Mac, from source
+## Using Cursor Accounts
 
-```bash
-brew install xcodegen                # once
-./Scripts/install.sh                 # Release build → /Applications/Cursor Accounts.app
-INSTALL_DIR="$HOME/Applications" ./Scripts/install.sh
+### Connect accounts
+
+Click the yellow Cursor mark in the menu bar.
+
+For your first account, choose **Connect Cursor account**. After that, use **Connect another account**.
+
+Sign-in uses the same authentication flow as Cursor's CLI. Once connected, Cursor Accounts keeps the account so you do not need to sign in again every time you switch.
+
+### Switch accounts
+
+Choose any account that is not currently active and confirm the switch.
+
+Cursor Accounts will quit Cursor, switch the active account, and reopen Cursor signed in as that account. Settings, extensions, history, and MCP configuration stay in place.
+
+Save your work before switching. Cursor has to quit, so unsaved work can be lost, same as any normal quit.
+
+### See usage in the menu bar
+
+Enable **Show usage in menu bar** to see current usage without opening the dashboard.
+
+```text
+78 · 100 · $150.68 / $150
 ```
 
-After a successful run, `/Applications/Cursor Accounts.app` exists and `cursor-accounts` is on your `PATH` (`/opt/homebrew/bin`, `/usr/local/bin`, or `~/.local/bin`). The script does not leave you in DerivedData.
+That is Cursor model usage %, API usage %, and on-demand spend against the cap.
+
+![Menu bar with accounts and usage](docs/menu.png)
+
+### Label accounts
+
+Cursor accounts can share the same display name. Add a nickname so you can tell them apart: `Work`, `Personal`, `Client`.
+
+Set labels from the account menu, dashboard, or CLI. Emails stay emails. Labels cannot contain `@`.
+
+Enable **Mask Email** to hide addresses in the menu and dashboard.
+
+### Dashboard
+
+Choose **Open Dashboard** or press ⌘D.
+
+**Accounts** shows the roster: plan, Cursor usage, API usage, on-demand spend, next reset date.
+
+**Models** and **Usage** show token history, agent activity, time spent, and a usage heatmap.
+
+
+|                                                    |                                              |
+| -------------------------------------------------- | -------------------------------------------- |
+| ![Accounts dashboard](docs/dashboard-accounts.png) | ![Usage dashboard](docs/dashboard-usage.png) |
+
+
+### Remove an account
+
+**Sign out locally** removes the account from Cursor Accounts. It does not sign you out of Cursor or change Cursor's own storage.
+
+## Command line
+
+`cursor-accounts` is the no-UI path. Agents and scripts should use it to read account state, set labels, and switch Cursor without opening the dashboard.
+
+After install, open a new terminal. Prefer `--json` when something other than a person is reading the output.
 
 ```bash
 cursor-accounts list
+cursor-accounts list --json
 cursor-accounts usage
+cursor-accounts usage --json
+cursor-accounts usage --group tokens
+cursor-accounts usage --seat Work
+cursor-accounts renewals
+cursor-accounts renewals --json
+cursor-accounts label you@email.com Work
+cursor-accounts label Work clear
+cursor-accounts switch Work
 cursor-accounts --help
 ```
 
+Pick an account by nickname, email, or the `seatID` from `list`. If more than one account matches, the command prints `error:` to stderr and exits 1. It will not guess.
+
+### `list`
+
+Connected accounts. Text is a table. `--json` is an array of objects:
+
+
+| Field           | Meaning                                                        |
+| --------------- | -------------------------------------------------------------- |
+| `seatID`        | Stable id. Safest target for later commands.                   |
+| `label`         | What the UI shows. Nickname if set, otherwise the Cursor name. |
+| `userLabel`     | Nickname only, or null.                                        |
+| `identity`      | Cursor display name.                                           |
+| `email`         | Email, or null if masked / unknown.                            |
+| `plan`          | Plan badge, or null.                                           |
+| `renewal`       | Next reset, ISO-8601, or null.                                 |
+| `isActive`      | `true` if this is the account Cursor is on.                    |
+| `cursorPercent` | Plan usage 0–100, or null.                                     |
+| `apiPercent`    | API usage 0–100, or null.                                      |
+
+
+Empty roster prints `No connected accounts.`
+
+### `usage`
+
+Last usage the dashboard cached. It does not fetch. If nothing is cached:
+
+```text
+No cached usage. Open the dashboard once, then retry.
+```
+
+`--group` is `tokens`, `family`, `activity`, `time`, or `models`. Omit it to print every group. `--seat` limits the report to one account.
+
+```bash
+cursor-accounts usage --group tokens --seat Work --json
+```
+
+`--json` is an array of `{ "group", "lines", "available" }`. `available` is false when that group has no cache. Exit 1 if no group has data.
+
+### `renewals`
+
+Upcoming reset dates, same row shape as `list`, soonest first. `--json` for the same objects.
+
+### `label`
+
+```bash
+cursor-accounts label you@email.com Work
+cursor-accounts label Work clear
+cursor-accounts label Work
+```
+
+The last form prints the current nickname. `clear` removes it. A label cannot contain `@`.
+
+### `switch`
+
+```bash
+cursor-accounts switch Work
+cursor-accounts switch Work --force
+```
+
+Asks Cursor to quit, then brings it back on that account. Settings, extensions, history, and MCP config stay. Unsaved work can be lost.
+
+If Cursor is still running, it exits 1 with `Cursor is still running. Re-run with --force to force-quit and continue.` Use `--force` only when you mean to quit it.
+
 ## Build from source
 
-Requires Xcode 15+ (Xcode 27 beta works), macOS 14+, and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+Needs macOS 14+, Xcode 15+ or Xcode 27 beta, and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash
-xcodegen generate       # if you changed project.yml
+xcodegen generate
 open CursorBar.xcodeproj
+./Scripts/verify.sh unit
 ```
 
-Verification harness (prints exact commands; writes redacted logs under `.verify/`):
+The scheme and app are named Cursor Accounts. The Xcode project is still `CursorBar.xcodeproj`. Keep the bundle identifier `app.cursorbar`.
+
+### Package a DMG
 
 ```bash
-./Scripts/verify.sh unit        # xcodegen if needed + full tests
-./Scripts/verify.sh adapters    # tests + static Keychain/secret checks
-./Scripts/verify.sh smoke       # build, launch app, assert process, quit (no IDE restart)
+./Scripts/package-dmg.sh
+# writes dist/Cursor-Accounts-0.2.1.dmg
 ```
 
-`live-write` is not implemented (needs dual env gates + exact revert). Smoke never relaunches Cursor IDE.
-
-The Xcode scheme is **Cursor Accounts**. The built product is `Cursor Accounts.app`. Swift modules stay `CursorBar*`.
+`dist/` is gitignored. Do not commit the DMG.
 
 ```bash
-export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer   # if needed
-xcodebuild -scheme "Cursor Accounts" -destination 'platform=macOS' build
-xcodebuild -scheme "Cursor Accounts" -destination 'platform=macOS' test
+APP_PATH="/Applications/Cursor Accounts.app" ./Scripts/package-dmg.sh
 ```
 
-**Switch account…** is an explicit menu action with confirmation. Cursor Accounts uses one shared Cursor IDE profile (`~/Library/Application Support/Cursor`). Switching quits Cursor, replaces only scoped `cursorAuth/*` session rows in `state.vscdb`, relaunches the shared profile (no seat-specific `--user-data-dir`), and marks Active only after the DB JWT subject matches the target seat. Settings, extensions, history, and MCP config stay in the shared profile. Focus, sign-in, refresh, and on-demand never restart the IDE.
+That packages an already-built app and skips `xcodebuild`.
 
-Legacy per-seat directories under `~/Library/Application Support/CursorBar/IDEProfiles/` are left on disk and are no longer launched. Migration is silent by default.
+## Contribute
 
-## Architecture
+Bugs, CLI, dashboard, and docs are welcome. Open an issue or a PR on [jpaulpoliquit/cursor-accounts](https://github.com/jpaulpoliquit/cursor-accounts).
 
-| Layer | Path | Rules |
-| --- | --- | --- |
-| Domain | `Sources/Domain` | Foundation only. Typed contracts, pure derives. No SwiftUI, AppKit, SQLite, Security, or networking. |
-| Adapters | `Sources/Adapters` | Cursor desktop session SQLite, `app.cursorbar` Keychain, Dashboard probe, bootstrap bind, account-switch inject/restore. |
-| App shell | `Sources/App` | Composition root, MenuBarExtra, Dashboard UI. Features must not touch token raw values. |
-| Design | `Sources/App/Design` | Motion tokens (Reduce Motion aware). |
-| Tests | `Tests/DomainTests`, `Tests/AdaptersTests` | Domain invariants plus adapter fixtures (never live tokens). |
+```bash
+./Scripts/verify.sh unit
+```
 
-**Composition.** `AppModel` paints a credential-free shell from Keychain, then `BootstrapOrchestrator` imports the active Cursor desktop session into Seat 1 (or the matching existing seat) and probes current-period usage.
+Run that before you send work. Leave the bundle id `app.cursorbar` alone. Do not commit `dist/`, `.verify/`, tokens, or Cursor session files. Do not add telemetry.
 
-**Security.** App Sandbox is off for v1 so Cursor Accounts can read and (only during account switch) narrowly update Cursor's shared `state.vscdb`. Only Keychain service `app.cursorbar` is writable. Cursor-owned Keychain items are never written.
+## Updates
 
-Account-switch DB writes are allowed only after Cursor has fully exited. The write set is scoped `cursorAuth/*` session rows from a Connect-ready plan (never `crsr_` API keys), applied in a `BEGIN IMMEDIATE` transaction with in-memory row backup, exact restore on failure, and identity verification before Ready/Active. Unrelated `ItemTable` rows and other tables are preserved. Fixture tests use `CursorAuthSessionStore.fixture` which refuses the live Application Support Cursor path.
+**Check for Updates** reads the [latest GitHub release](https://github.com/jpaulpoliquit/cursor-accounts/releases/latest). No GitHub token is embedded in the app.
 
-## Phase 1 scope
+---
 
-- Import the logged-in Cursor desktop session without browser login
-- Bind into the account roster (idempotent, no silent eviction)
-- Show email, plan cache, and current-period usage on the seat card
-- Menu bar label reflects signed-in count after bootstrap
+Made by [John Paul Poliquit](https://github.com/jpaulpoliquit).
+
+Unofficial and not affiliated with Cursor/Anysphere or SpaceXAI. MIT licensed.

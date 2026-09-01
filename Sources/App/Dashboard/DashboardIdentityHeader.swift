@@ -21,8 +21,8 @@ struct DashboardIdentityHeader: View {
                     .font(compact ? .system(size: 13, weight: .semibold) : CursorProfile.Font.display)
                     .tracking(compact ? 0 : -0.3)
                     .lineLimit(1)
-                if !compact, let email = focused?.revealedEmail {
-                    Text(email.value)
+                if !compact, let subtitle = focused?.identitySubtitle {
+                    Text(subtitle)
                         .font(CursorProfile.Font.handle)
                         .foregroundStyle(.secondary)
                 }
@@ -37,8 +37,8 @@ struct DashboardIdentityHeader: View {
     }
 
     private var helpText: String {
-        if let email = focused?.revealedEmail {
-            return "\(heroTitle)\n\(email.value)\n\(headerSubtitle)"
+        if let subtitle = focused?.identitySubtitle {
+            return "\(heroTitle)\n\(subtitle)\n\(headerSubtitle)"
         }
         return "\(heroTitle)\n\(headerSubtitle)"
     }

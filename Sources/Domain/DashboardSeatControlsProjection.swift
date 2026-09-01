@@ -149,8 +149,8 @@ public struct DashboardSeatControlsProjection: Sendable, Equatable, Hashable {
         if showsActiveIndicator {
             parts.append("Active")
         }
-        if let revealedEmail = seat.revealedEmail {
-            parts.append(revealedEmail.value)
+        if let subtitle = seat.identitySubtitle {
+            parts.append(subtitle)
         }
         if let planName = seat.planName {
             parts.append(planName)

@@ -397,5 +397,31 @@ final class SeatPresentationTests: XCTestCase {
         XCTAssertEqual(focused.dashboardTitle, "Work")
         XCTAssertEqual(focused.menuRow.primaryName, "Work")
         XCTAssertEqual(focused.label.text, "john 5")
+        XCTAssertEqual(focused.identitySubtitle, "john 5")
+        XCTAssertNil(focused.revealedEmail)
+    }
+
+    func testLabeledSeatShowsEmailWhenUnmasked() {
+        let seat = SeatSnapshot(
+            seatID: .seat1,
+            auth: .signedIn,
+            email: Email("jp@example.com"),
+            displayName: DisplayName("john 5")
+        )
+        let presentation = SeatPresentationProjector.project(
+            aggregate: AggregateSnapshot(seats: [seat]),
+            usageBySeat: [:],
+            identityPolicy: .revealEmail,
+            focusedSeatID: .seat1,
+            loginPhases: [:],
+            bootstrapPhase: .settled(.kept(.seat1)),
+            usageRefreshPhase: .idle,
+            setHardLimitPhase: .idle,
+            userLabels: [.seat1: SeatUserLabel("Work")!]
+        )
+        let focused = try! XCTUnwrap(presentation.focusedSeat)
+        XCTAssertEqual(focused.dashboardTitle, "Work")
+        XCTAssertEqual(focused.identitySubtitle, "jp@example.com")
+        XCTAssertEqual(focused.revealedEmail?.value, "jp@example.com")
     }
 }

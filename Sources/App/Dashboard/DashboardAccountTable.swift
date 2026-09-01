@@ -53,8 +53,15 @@ struct DashboardAccountTable: View {
         Color.clear.frame(width: 32, height: 1)
     }
 
+    private var photoColumn: some View {
+        Color.clear
+            .frame(width: CursorProfile.tableAvatarSize, height: 1)
+            .accessibilityHidden(true)
+    }
+
     private var header: some View {
         HStack(spacing: 10) {
+            photoColumn
             sortHeader("Name", .name, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
             sortHeader(leadingUsageHeader, .usage, alignment: .trailing)
@@ -77,6 +84,7 @@ struct DashboardAccountTable: View {
     private func row(_ seat: SeatPresentation) -> some View {
         let hovered = hoveredID == seat.seatID
         return HStack(alignment: .center, spacing: 10) {
+            photoCell(seat)
             nameCell(seat)
                 .frame(maxWidth: .infinity, alignment: .leading)
             usageLeadingCell(seat)
@@ -115,40 +123,42 @@ struct DashboardAccountTable: View {
         }
     }
 
+    private func photoCell(_ seat: SeatPresentation) -> some View {
+        CursorProfileAvatar(
+            name: seat.dashboardTitle,
+            pictureURL: seat.pictureURL,
+            size: CursorProfile.tableAvatarSize
+        )
+        .frame(width: CursorProfile.tableAvatarSize, height: CursorProfile.tableAvatarSize)
+        .fixedSize()
+    }
+
     private func nameCell(_ seat: SeatPresentation) -> some View {
-        HStack(spacing: 12) {
-            CursorProfileAvatar(name: seat.dashboardTitle, pictureURL: seat.pictureURL, size: 36)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(seat.dashboardTitle)
-                        .font(CursorProfile.Font.table.weight(.semibold))
-                        .lineLimit(1)
-                        .onTapGesture {
-                            if seat.auth == .signedIn || seat.auth == .needsReauth {
-                                model.presentLabelEditor(seatID: seat.seatID)
-                            }
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Text(seat.dashboardTitle)
+                    .font(CursorProfile.Font.table.weight(.semibold))
+                    .lineLimit(1)
+                    .onTapGesture {
+                        if seat.auth == .signedIn || seat.auth == .needsReauth {
+                            model.presentLabelEditor(seatID: seat.seatID)
                         }
-                    if seat.isDesktopBound {
-                        ActiveMenuMarker()
                     }
-                    if let plan = seat.planBadgeTitle, !plan.isEmpty {
-                        CursorProfilePill(title: plan)
-                    }
-                    if seat.isTeamAccount, seat.planBadgeTitle?.caseInsensitiveCompare("Team") != .orderedSame {
-                        CursorProfilePill(title: "Team")
-                    }
+                if seat.isDesktopBound {
+                    ActiveMenuMarker()
                 }
-                if let userLabel = seat.userLabel, userLabel.value != seat.label.text {
-                    Text(seat.label.text)
-                        .font(CursorProfile.Font.meta)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                } else if let email = seat.revealedEmail, email.value != seat.dashboardTitle {
-                    Text(email.value)
-                        .font(CursorProfile.Font.meta)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                if let plan = seat.planBadgeTitle, !plan.isEmpty {
+                    CursorProfilePill(title: plan)
                 }
+                if seat.isTeamAccount, seat.planBadgeTitle?.caseInsensitiveCompare("Team") != .orderedSame {
+                    CursorProfilePill(title: "Team")
+                }
+            }
+            if let subtitle = seat.identitySubtitle {
+                Text(subtitle)
+                    .font(CursorProfile.Font.meta)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
     }
@@ -274,8 +284,8 @@ struct DashboardAccountTable: View {
         if seat.isDesktopBound {
             parts.append("Active")
         }
-        if let email = seat.revealedEmail, email.value != seat.dashboardTitle {
-            parts.append(email.value)
+        if let subtitle = seat.identitySubtitle {
+            parts.append(subtitle)
         }
         if let plan = seat.planBadgeTitle, !plan.isEmpty {
             parts.append(plan)

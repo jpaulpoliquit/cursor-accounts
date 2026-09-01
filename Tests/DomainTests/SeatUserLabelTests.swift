@@ -27,6 +27,27 @@ final class SeatUserLabelTests: XCTestCase {
         XCTAssertEqual(SeatUserLabelResolver.primary(userLabel: nil, identity: identity), "john 5")
     }
 
+    func testSecondaryShowsEmailWhenUnmaskedAndNameWhenMasked() {
+        let identity = AccountLabel.displayName(DisplayName("john 5")!)
+        let email = Email("jp@example.com")!
+        let work = SeatUserLabel("Work")
+        XCTAssertEqual(
+            SeatUserLabelResolver.secondary(userLabel: work, identity: identity, revealedEmail: email),
+            "jp@example.com"
+        )
+        XCTAssertEqual(
+            SeatUserLabelResolver.secondary(userLabel: work, identity: identity, revealedEmail: nil),
+            "john 5"
+        )
+        XCTAssertEqual(
+            SeatUserLabelResolver.secondary(userLabel: nil, identity: identity, revealedEmail: email),
+            "jp@example.com"
+        )
+        XCTAssertNil(
+            SeatUserLabelResolver.secondary(userLabel: nil, identity: identity, revealedEmail: nil)
+        )
+    }
+
     func testTargetPrefersUniqueLabelThenSeatID() {
         let work = makeSeat(.seat1, label: "Work", name: "john 5")
         let home = makeSeat(.seat2, label: nil, name: "Ada")

@@ -4,19 +4,35 @@ import SwiftUI
 struct UsageChartView: View {
     @Bindable var coordinator: UsageSeriesCoordinator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                headerRow
-                heroMetric
-                Text(scopeCaption)
-                    .font(CursorProfile.Font.meta)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: CursorProfile.sectionSpacing) {
+            HStack(alignment: .top, spacing: CursorProfile.cardPadding) {
+                VStack(alignment: .leading, spacing: CursorProfile.clusterSpacing) {
+                    heroMetric
+                    Text(sectionTitle)
+                        .font(CursorProfile.Font.section)
+                        .foregroundStyle(.secondary)
+                        .accessibilityAddTraits(.isHeader)
+                    if let heroMeta {
+                        Text(heroMeta)
+                            .font(CursorProfile.Font.meta)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: CursorProfile.itemSpacing)
+                VStack(alignment: .trailing, spacing: 8) {
+                    HStack(spacing: 8) {
+                        scopePicker
+                        if coordinator.costAvailable {
+                            metricPicker
+                        }
+                    }
+                    UsageRangeControls(coordinator: coordinator, layout: .toolbar)
+                }
             }
-
-            UsageRangeControls(coordinator: coordinator)
 
             chartBody
                 .frame(minHeight: 192)
@@ -32,20 +48,6 @@ struct UsageChartView: View {
         .animation(Motion.gentle(reduceMotion: reduceMotion), value: coordinator.resolvedMetric)
     }
 
-    private var headerRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(sectionTitle)
-                .font(CursorProfile.Font.section)
-                .foregroundStyle(.secondary)
-                .accessibilityAddTraits(.isHeader)
-            Spacer(minLength: 8)
-            scopePicker
-            if coordinator.costAvailable {
-                metricPicker
-            }
-        }
-    }
-
     private var sectionTitle: String {
         switch coordinator.resolvedMetric {
         case .tokens:
@@ -57,13 +59,33 @@ struct UsageChartView: View {
         }
     }
 
-    private var scopeCaption: String {
-        switch coordinator.scope {
-        case .allAccounts:
-            return "Graph total across every connected account."
-        case .account:
-            return "Graph total for the selected account only."
+    private var heroMeta: String? {
+        guard coordinator.resolvedMetric == .tokens else {
+            return coordinator.scope == .allAccounts
+                ? "Graph total across every connected account."
+                : "Graph total for the selected account only."
         }
+        var parts: [String] = []
+        if let insights = coordinator.insights, insights.totalRequests > 0 {
+            parts.append("\(TokenCountFormat.grouped(insights.totalRequests)) requests")
+        }
+        if let tokenDays {
+            parts.append("\(TokenCountFormat.grouped(tokenDays)) days")
+        }
+        if parts.isEmpty {
+            return coordinator.scope == .allAccounts
+                ? "Graph total across every connected account."
+                : "Graph total for the selected account only."
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private var tokenDays: Int? {
+        if let series = coordinator.series {
+            let count = series.points.filter(\.hasDisplayableUsage).count
+            return count > 0 ? count : nil
+        }
+        return nil
     }
 
     @ViewBuilder
@@ -115,7 +137,7 @@ struct UsageChartView: View {
     @ViewBuilder
     private var tokenDetails: some View {
         if coordinator.resolvedMetric == .tokens, let summary = coordinator.tokenSummary {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: CursorProfile.cardPadding) {
                 if summary.totals.total > 0 {
                     bucketDetails(summary.totals)
                 } else {
@@ -123,8 +145,8 @@ struct UsageChartView: View {
                         .font(CursorProfile.Font.meta)
                         .foregroundStyle(.secondary)
                 }
-                if !summary.topModels.isEmpty {
-                    topModels(summary.topModels)
+                if !summary.topLines.isEmpty {
+                    topModels(summary.topLines)
                 }
             }
             .accessibilityElement(children: .contain)
@@ -132,58 +154,83 @@ struct UsageChartView: View {
     }
 
     private func bucketDetails(_ totals: TokenBucketCounts) -> some View {
-        HStack(spacing: 12) {
-            bucketChip(title: "Input", value: totals.input)
-            bucketChip(title: "Output", value: totals.output)
-            bucketChip(title: "Cache read", value: totals.cacheRead)
-            bucketChip(title: "Cache write", value: totals.cacheWrite)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: CursorProfile.cardPadding) {
+                bucketHeaders(totals)
+            }
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                alignment: .leading,
+                spacing: CursorProfile.cardPadding
+            ) {
+                bucketHeaders(totals)
+            }
         }
-        .font(CursorProfile.Font.statLabel)
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
         .accessibilityHidden(true)
     }
 
-    private func bucketChip(title: String, value: Int64) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(title)
-            Text(TokenCountFormat.compact(value))
-                .monospacedDigit()
-                .foregroundStyle(.primary.opacity(0.7))
-        }
+    @ViewBuilder
+    private func bucketHeaders(_ totals: TokenBucketCounts) -> some View {
+        CursorProfileStat(label: "Input", value: TokenCountFormat.compact(totals.input))
+        CursorProfileStat(label: "Output", value: TokenCountFormat.compact(totals.output))
+        CursorProfileStat(label: "Cache read", value: TokenCountFormat.compact(totals.cacheRead))
+        CursorProfileStat(label: "Cache write", value: TokenCountFormat.compact(totals.cacheWrite))
     }
 
-    private func topModels(_ models: [RankedModelUsage]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+    private func topModels(_ lines: [RankedModelLine]) -> some View {
+        VStack(alignment: .leading, spacing: CursorProfile.itemSpacing) {
             Text(TopModelsCopy.title(for: coordinator.range))
-                .font(CursorProfile.Font.statLabel)
-                .foregroundStyle(.secondary)
+                .font(CursorProfile.Font.section)
                 .accessibilityHint(TopModelsCopy.accessibilityHint(for: coordinator.range))
-            ForEach(Array(models.enumerated()), id: \.element.model.modelIntent) { _, ranked in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(ranked.model.displayName)
-                        .font(CursorProfile.Font.meta)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer(minLength: 8)
-                    Text(TokenCountFormat.compact(ranked.model.buckets.total))
-                        .font(CursorProfile.Font.meta.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                    Text(TokenCountFormat.percentShare(ranked.share))
-                        .font(CursorProfile.Font.statLabel.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .frame(minWidth: 36, alignment: .trailing)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: CursorProfile.itemSpacing) {
+                    ForEach(Array(lines.enumerated()), id: \.element.id) { index, line in
+                        topModelCard(line, rank: index + 1)
+                    }
                 }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(
-                    "\(ranked.model.displayName), \(TokenCountFormat.compact(ranked.model.buckets.total)) tokens, \(TokenCountFormat.percentShare(ranked.share))"
-                )
+                VStack(alignment: .leading, spacing: CursorProfile.itemSpacing) {
+                    ForEach(Array(lines.enumerated()), id: \.element.id) { index, line in
+                        topModelCard(line, rank: index + 1)
+                    }
+                }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(TopModelsCopy.title(for: coordinator.range))
         .accessibilityHint(TopModelsCopy.accessibilityHint(for: coordinator.range))
+    }
+
+    private func topModelCard(_ ranked: RankedModelLine, rank: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(ranked.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 4)
+                Text("\(rank)")
+                    .font(CursorProfile.Font.statLabel.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            Text("\(TokenCountFormat.compact(ranked.tokens)) · \(TokenCountFormat.percentShare(ranked.share))")
+                .font(CursorProfile.Font.meta.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(CursorProfile.paper(colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(CursorProfile.hairline(colorScheme, highContrast: false), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(rank). \(ranked.title), \(TokenCountFormat.compact(ranked.tokens)) tokens, \(TokenCountFormat.percentShare(ranked.share))"
+        )
     }
 
     @ViewBuilder

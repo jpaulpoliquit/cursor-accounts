@@ -1,46 +1,17 @@
 import CursorBarDomain
 import SwiftUI
 
-/// Two-line root-menu account label. Email first, Active as a trailing pill.
+/// Root-menu account label. Title carries the Active checkmark because NSMenu flattens custom views.
 struct AccountMenuRow: View {
     let model: AccountMenuRowModel
-    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            primaryLine
-            secondaryLine
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .foregroundStyle(.primary)
-        .contentShape(Rectangle())
-        .help(model.helpText)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(model.accessibilityLabel)
-    }
-
-    private var primaryLine: some View {
-        HStack(spacing: 6) {
-            Text(model.primaryName)
-                .font(.body.weight(.medium))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .layoutPriority(1)
-
-            if model.showsActiveIDE {
-                ActiveMenuMarker()
-            }
-        }
-    }
-
-    private var secondaryLine: some View {
-        Text(model.secondarySummary)
-            .font(.caption.weight(.medium).monospacedDigit())
-            .foregroundStyle(.primary.opacity(contrast == .increased ? 0.84 : 0.72))
-            .lineLimit(2)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityHidden(true)
+        Text(model.rootItemTitle)
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .accessibilityLabel(model.accessibilityLabel)
     }
 }
 
@@ -87,63 +58,21 @@ struct ActiveMenuMarker: View {
     }
 }
 
-/// Read-only account facts. One menu view so AppKit does not draw each line as a disabled item.
+/// One status line. NSMenu renders extra `Text` rows as disabled captions; keep a single fact line.
 struct AccountMenuDetailHeader: View {
-    let seat: SeatPresentation
     let row: AccountMenuRowModel
-    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 6) {
-                Text(row.primaryName)
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .layoutPriority(1)
-                if seat.isDesktopBound {
-                    ActiveMenuMarker()
-                }
-            }
-
-            Text(seat.authTitle)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.primary.opacity(mutedOpacity))
-
-            Text(row.secondarySummary)
-                .font(.caption.weight(.medium).monospacedDigit())
-                .foregroundStyle(.primary.opacity(mutedOpacity))
-
-            if let onDemand = seat.onDemand {
-                Text(onDemand.spendLine)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.primary.opacity(mutedOpacity))
-            }
-
-            if let credits = seat.credits, case .present(let balance, _, _) = credits {
-                Text("Credits $\(formatCents(balance.cents))")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.primary.opacity(mutedOpacity))
-            }
-
-            if let pill = seat.pill {
-                Text(pill.explanation)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.primary.opacity(mutedOpacity))
-            }
+        if !row.submenuStatusLine.isEmpty {
+            Text(row.submenuStatusLine)
+                .font(.body.weight(.medium).monospacedDigit())
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .allowsHitTesting(false)
+                .accessibilityLabel(row.submenuStatusLine)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 2)
-        .allowsHitTesting(false)
-    }
-
-    private var mutedOpacity: Double {
-        contrast == .increased ? 0.84 : 0.72
-    }
-
-    private func formatCents(_ cents: Int64) -> String {
-        String(format: "%.2f", Double(cents) / 100.0)
     }
 }
 

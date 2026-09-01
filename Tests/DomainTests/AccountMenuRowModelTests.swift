@@ -15,6 +15,15 @@ final class AccountMenuRowModelTests: XCTestCase {
         )
         let row = seat.menuRow
         XCTAssertEqual(row.primaryName, "john 5")
+        let labeled = SeatPresentation(
+            seatID: .seat1,
+            label: .displayName(DisplayName("john 5")!),
+            auth: .signedIn,
+            identityPolicy: .maskEmail,
+            userLabel: SeatUserLabel("Work")
+        )
+        XCTAssertEqual(labeled.menuRow.primaryName, "Work")
+        XCTAssertEqual(labeled.dashboardTitle, "Work")
         XCTAssertEqual(row.cursorUsedPercent, 93)
         XCTAssertEqual(row.otherUsedPercent, 100)
         XCTAssertEqual(row.cursorMetricText, "Cursor  93%")
@@ -24,8 +33,15 @@ final class AccountMenuRowModelTests: XCTestCase {
         XCTAssertTrue(row.secondarySummary.contains("On-demand"))
         XCTAssertEqual(row.pill, .onDemandActive)
         XCTAssertFalse(row.showsActiveIDE)
+        XCTAssertEqual(row.rootItemTitle, "john 5")
         XCTAssertFalse(row.helpText.contains("@"))
         XCTAssertTrue(row.accessibilityLabel.contains("john 5"))
+        XCTAssertTrue(row.submenuStatusLine.contains("Ultra"))
+        XCTAssertTrue(row.submenuStatusLine.contains("Cursor  93%"))
+        XCTAssertTrue(row.submenuStatusLine.contains("Other 100%"))
+        XCTAssertFalse(row.submenuStatusLine.contains("Signed in"))
+        XCTAssertFalse(row.submenuStatusLine.contains("On-demand spend is active"))
+        XCTAssertFalse(row.submenuStatusLine.hasPrefix("✓"))
     }
 
     func testRevealPrefersEmailForPrimaryLine() {
@@ -125,6 +141,7 @@ final class AccountMenuRowModelTests: XCTestCase {
             identityPolicy: .maskEmail
         )
         XCTAssertFalse(inactive.menuRow.showsActiveIDE)
+        XCTAssertEqual(inactive.menuRow.rootItemTitle, "john 5")
 
         let active = SeatPresentation(
             seatID: .seat1,
@@ -135,8 +152,36 @@ final class AccountMenuRowModelTests: XCTestCase {
             identityPolicy: .maskEmail
         )
         XCTAssertTrue(active.menuRow.showsActiveIDE)
+        XCTAssertEqual(active.menuRow.rootItemTitle, "✓ john 5")
+        XCTAssertTrue(active.menuRow.submenuStatusLine.hasPrefix("Active"))
         XCTAssertTrue(active.menuRow.accessibilityLabel.contains("Active"))
         XCTAssertFalse(active.menuRow.accessibilityLabel.contains("Desktop bound"))
+    }
+
+    func testSubmenuStatusPrefersSpendOverPillEssay() {
+        let seat = SeatPresentation(
+            seatID: .seat1,
+            label: .displayName(DisplayName("john 5")!),
+            auth: .signedIn,
+            planName: "ultra",
+            autoPercent: PercentUsed(unchecked: 100),
+            apiPercent: PercentUsed(unchecked: 100),
+            onDemand: OnDemandPresentation(
+                mode: .fixed(PositiveDollars(320)!),
+                usedCents: AmountCents(cents: 30_732)
+            ),
+            pill: .onDemandActive,
+            isDesktopBound: true,
+            identityPolicy: .maskEmail
+        )
+        let line = seat.menuRow.submenuStatusLine
+        XCTAssertEqual(
+            line,
+            "Active · Ultra · Cursor 100% · Other 100% · $307.32 / $320"
+        )
+        XCTAssertFalse(line.contains("Signed in"))
+        XCTAssertFalse(line.contains("On-demand spend is active"))
+        XCTAssertFalse(line.contains("@"))
     }
 
     func testLongAliasKeepsFullPrivacySafeHelpText() {
@@ -175,5 +220,7 @@ final class AccountMenuRowModelTests: XCTestCase {
         XCTAssertEqual(rows.map(\.cursorUsedPercent), [10, 20, 30, 40, 50])
         XCTAssertEqual(rows.filter(\.showsActiveIDE).count, 1)
         XCTAssertEqual(rows[2].showsActiveIDE, true)
+        XCTAssertEqual(rows[2].rootItemTitle, "✓ acct 3")
+        XCTAssertEqual(rows.filter { $0.rootItemTitle.hasPrefix("✓") }.count, 1)
     }
 }

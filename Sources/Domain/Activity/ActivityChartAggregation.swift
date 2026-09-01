@@ -28,7 +28,7 @@ public enum ActivityChartAggregation {
             return days.map { day in
                 ActivityChartPoint(
                     label: shortDayLabel(day.day),
-                    accessibilityLabel: "\(day.day.isoDate), \(day.requestCount) requests",
+                    accessibilityLabel: "\(day.day.isoDate), \(TokenCountFormat.grouped(day.requestCount)) requests",
                     requestCount: day.requestCount,
                     tokens: day.tokens
                 )
@@ -47,7 +47,7 @@ public enum ActivityChartAggregation {
             let title = month.localizedTitle(locale: locale)
             return ActivityChartPoint(
                 label: title,
-                accessibilityLabel: "\(title), \(value.requests) requests",
+                accessibilityLabel: "\(title), \(TokenCountFormat.grouped(value.requests)) requests",
                 requestCount: value.requests,
                 tokens: value.tokens
             )

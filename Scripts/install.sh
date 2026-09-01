@@ -9,7 +9,7 @@ cd "$ROOT"
 PRODUCT_DISPLAY="Cursor Accounts"
 APP_NAME="Cursor Accounts.app"
 EXECUTABLE="Cursor Accounts"
-SCHEME="CursorBar"
+SCHEME="Cursor Accounts"
 CONFIGURATION="Release"
 INSTALL_DIR="${INSTALL_DIR:-/Applications}"
 DERIVED="${ROOT}/.build/install-DerivedData"
@@ -45,6 +45,7 @@ verify_product_app() {
   local app="$1"
   [[ -d "${app}" ]] || fail "missing ${app}"
   [[ -x "${app}/Contents/MacOS/${EXECUTABLE}" ]] || fail "${EXECUTABLE} binary missing in ${app}"
+  [[ -x "${app}/Contents/MacOS/cursor-accounts" ]] || fail "cursor-accounts CLI missing in ${app}"
   local name display bid
   name="$(plist_string "${app}" CFBundleName)"
   display="$(plist_string "${app}" CFBundleDisplayName)"
@@ -52,6 +53,35 @@ verify_product_app() {
   [[ "${name}" == "${PRODUCT_DISPLAY}" ]] || fail "CFBundleName is '${name}', expected ${PRODUCT_DISPLAY}"
   [[ "${display}" == "${PRODUCT_DISPLAY}" ]] || fail "CFBundleDisplayName is '${display}', expected ${PRODUCT_DISPLAY}"
   [[ "${bid}" == "app.cursorbar" ]] || fail "bundle id is '${bid}'; must stay app.cursorbar"
+}
+
+cli_bindir() {
+  if [[ -d /opt/homebrew/bin && -w /opt/homebrew/bin ]]; then
+    printf '%s\n' /opt/homebrew/bin
+    return
+  fi
+  if [[ -d /usr/local/bin && -w /usr/local/bin ]]; then
+    printf '%s\n' /usr/local/bin
+    return
+  fi
+  mkdir -p "${HOME}/.local/bin"
+  printf '%s\n' "${HOME}/.local/bin"
+}
+
+install_cli_shortcut() {
+  local app="$1"
+  local cli="${app}/Contents/MacOS/cursor-accounts"
+  local bindir shortcut
+  [[ -x "${cli}" ]] || fail "cursor-accounts CLI missing in ${app}"
+  bindir="$(cli_bindir)"
+  shortcut="${bindir}/cursor-accounts"
+  umask 022
+  cat >"${shortcut}" <<EOF
+#!/bin/sh
+exec "${cli}" "\$@"
+EOF
+  chmod 755 "${shortcut}"
+  echo "+ cli shortcut ${shortcut}"
 }
 
 quit_matching() {
@@ -123,7 +153,9 @@ ditto "${APP}" "${DEST}" || fail "ditto into ${DEST} failed"
 xattr -cr "${DEST}" || fail "xattr -cr ${DEST} failed"
 
 verify_product_app "${DEST}"
+install_cli_shortcut "${DEST}"
 echo "Installed ${DEST}"
+echo "  cli: $(cli_bindir)/cursor-accounts"
 echo "  name: $(plist_string "${DEST}" CFBundleName)"
 echo "  display: $(plist_string "${DEST}" CFBundleDisplayName)"
 echo "  id: $(plist_string "${DEST}" CFBundleIdentifier)"

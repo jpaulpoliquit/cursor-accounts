@@ -21,6 +21,14 @@ final class TokenCountFormatTests: XCTestCase {
         XCTAssertEqual(TokenCountFormat.axisLabel(1_200_000_000), "1.2B")
     }
 
+    func testGroupedInsertsThousandsSeparators() {
+        let us = Locale(identifier: "en_US")
+        XCTAssertEqual(TokenCountFormat.grouped(37388, locale: us), "37,388")
+        XCTAssertEqual(TokenCountFormat.grouped(41875, locale: us), "41,875")
+        XCTAssertEqual(TokenCountFormat.grouped(500, locale: us), "500")
+        XCTAssertEqual(TokenCountFormat.grouped(Int64(2_000), locale: us), "2,000")
+    }
+
     func testAccessibilityKeepsFullLocalizedValue() {
         let full = TokenCountFormat.accessibility(1_200_000)
         XCTAssertFalse(full.contains("M"))

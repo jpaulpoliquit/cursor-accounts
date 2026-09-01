@@ -80,15 +80,32 @@ final class ActivityModelCatalogTests: XCTestCase {
         XCTAssertEqual(row.months[0].month, YearMonth(year: 2026, month: 4))
         XCTAssertEqual(row.months[0].impliedCentsPerMillion, 400)
         XCTAssertEqual(row.months[1].impliedCentsPerMillion, 250)
-        let timeline = try! XCTUnwrap(
-            ActivityModelCatalog.rateTimelineCaption(for: row, timeZone: taipei)
+        let change = try! XCTUnwrap(ActivityModelCatalog.rateChange(for: row, timeZone: taipei))
+        XCTAssertEqual(change.direction, .down)
+        XCTAssertEqual(change.startCentsPerMillion, 400)
+        XCTAssertEqual(change.endCentsPerMillion, 250)
+        XCTAssertEqual(change.percent, 38)
+        XCTAssertTrue(change.monthRangeLabel.contains("–"))
+        XCTAssertFalse(change.monthRangeLabel.contains("2026"))
+        XCTAssertTrue(change.accessibilityLabel.contains("38 percent"))
+        XCTAssertTrue(change.accessibilityLabel.contains(change.startRateLabel))
+        XCTAssertTrue(change.accessibilityLabel.contains(change.endRateLabel))
+        XCTAssertEqual(
+            ActivityModelCatalog.compactMonthRange(
+                YearMonth(year: 2025, month: 12),
+                YearMonth(year: 2026, month: 2),
+                timeZone: taipei
+            ).contains("2025")
+                && ActivityModelCatalog.compactMonthRange(
+                    YearMonth(year: 2025, month: 12),
+                    YearMonth(year: 2026, month: 2),
+                    timeZone: taipei
+                ).contains("2026"),
+            true
         )
-        XCTAssertTrue(timeline.contains(ActivityModelCatalog.formatRate(400)))
-        XCTAssertTrue(timeline.contains(ActivityModelCatalog.formatRate(250)))
-        XCTAssertTrue(timeline.contains("→"))
     }
 
-    func testSectionsByFamilyFollowsFamilyOrderAndSkipsEmpty() {
+    func testSectionsByFamilyFollowsNewtonFamilyOrderAndSkipsEmpty() {
         let rows = [
             pricingRow(intent: "mystery-slug"),
             pricingRow(intent: "o3"),
@@ -96,23 +113,60 @@ final class ActivityModelCatalogTests: XCTestCase {
             pricingRow(intent: "cursor-small"),
             pricingRow(intent: "gpt-5"),
             pricingRow(intent: "cursor-grok-4.5-high"),
+            pricingRow(intent: "opus-5"),
+            pricingRow(intent: "gemini-3.5-flash"),
+            pricingRow(intent: "kimi-k2.7-code"),
+            pricingRow(intent: "glm-4.5"),
+            pricingRow(intent: "default"),
         ]
         let sections = ActivityModelCatalog.sectionsByFamily(rows)
         XCTAssertEqual(sections.map(\.family), [
-            .composer,
+            .auto,
             .grok,
+            .composer,
+            .claude,
             .gpt,
-            .oSeries,
-            .cursor,
+            .gemini,
+            .kimi,
+            .glm,
             .other,
         ])
-        XCTAssertFalse(sections.contains { $0.family == .claude })
         XCTAssertEqual(sections.first { $0.family == .grok }?.rows.map(\.modelIntent), [
             "cursor-grok-4.5-high",
         ])
-        XCTAssertEqual(sections.first { $0.family == .cursor }?.rows.map(\.modelIntent), [
+        XCTAssertEqual(sections.first { $0.family == .other }?.rows.map(\.modelIntent).sorted(), [
             "cursor-small",
+            "mystery-slug",
+            "o3",
         ])
+        XCTAssertEqual(sections.first { $0.family == .claude }?.rows.map(\.modelIntent), [
+            "opus-5",
+        ])
+    }
+
+    func testLinesSplitGrokByGenerationAndSkipSingleLineFamilies() {
+        let grok = [
+            pricingRow(intent: "cursor-grok-4.5-high-fast"),
+            pricingRow(intent: "cursor-grok-4.6-xhigh-fast"),
+            pricingRow(intent: "cursor-grok-4.5-high"),
+        ]
+        let lines = ActivityModelCatalog.lines(in: grok, family: .grok)
+        XCTAssertEqual(lines.map(\.line.title), ["Cursor Grok 4.6", "Cursor Grok 4.5"])
+        XCTAssertEqual(lines[0].rows.map(\.modelIntent), ["cursor-grok-4.6-xhigh-fast"])
+        XCTAssertEqual(lines[1].rows.map(\.modelIntent), [
+            "cursor-grok-4.5-high-fast",
+            "cursor-grok-4.5-high",
+        ])
+        XCTAssertTrue(ModelFamilySection(family: .grok, rows: grok).showsLineHeaders)
+        XCTAssertFalse(
+            ModelFamilySection(family: .composer, rows: [pricingRow(intent: "composer-2")]).showsLineHeaders
+        )
+        XCTAssertFalse(
+            ModelFamilySection(
+                family: .other,
+                rows: [pricingRow(intent: "mystery-slug"), pricingRow(intent: "o3")]
+            ).showsLineHeaders
+        )
     }
 
     func testAnalyzerAttachesCatalog() {

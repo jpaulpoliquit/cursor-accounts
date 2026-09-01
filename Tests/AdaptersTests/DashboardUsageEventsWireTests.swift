@@ -309,7 +309,7 @@ final class DashboardUsageEventsWireTests: XCTestCase {
     func testAllFailRefreshKeepsLastKnownInsights() async throws {
         let token = try XCTUnwrap(ConnectReadyAccessToken(validatedJWT: "header.payload.signature"))
         let cred = SeatUsageRefresher.SeatCredential(seatID: .seat1, access: token)
-        let range = UsageRange.month(YearMonth(year: 2026, month: 8))
+        let range = UsageRange.month(YearMonth.current())
         let tz = TimeZone(identifier: "Asia/Taipei")!
         let okJSON = #"""
         {"totalUsageEventsCount":2,"usageEventsDisplay":[

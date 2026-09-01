@@ -28,6 +28,11 @@ struct DashboardView: View {
                     OnDemandEditSheet(seat: seat, model: model)
                 }
             }
+            .sheet(item: $model.labelEditorSeatID) { seatID in
+                if let seat = editorSeat(seatID) {
+                    SeatLabelEditorSheet(seat: seat, model: model)
+                }
+            }
     }
 
     private func editorSeat(_ seatID: SeatID) -> SeatPresentation? {

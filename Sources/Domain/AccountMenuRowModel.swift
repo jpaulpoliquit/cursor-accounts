@@ -5,6 +5,8 @@ public struct AccountMenuRowModel: Sendable, Equatable, Hashable {
     public let primaryName: String
     public let helpText: String
     public let secondarySummary: String
+    /// Single high-contrast submenu status line. No identity repeat, no hover tooltip copy.
+    public let submenuStatusLine: String
     public let cursorUsedPercent: Int?
     public let otherUsedPercent: Int?
     public let pill: SeatStatusPill?
@@ -16,6 +18,7 @@ public struct AccountMenuRowModel: Sendable, Equatable, Hashable {
         primaryName: String,
         helpText: String,
         secondarySummary: String,
+        submenuStatusLine: String,
         cursorUsedPercent: Int?,
         otherUsedPercent: Int?,
         pill: SeatStatusPill?,
@@ -25,6 +28,7 @@ public struct AccountMenuRowModel: Sendable, Equatable, Hashable {
         self.primaryName = primaryName
         self.helpText = helpText
         self.secondarySummary = secondarySummary
+        self.submenuStatusLine = submenuStatusLine
         self.cursorUsedPercent = cursorUsedPercent
         self.otherUsedPercent = otherUsedPercent
         self.pill = pill
@@ -38,7 +42,8 @@ public struct AccountMenuRowModel: Sendable, Equatable, Hashable {
         aliasLabel: AccountLabel,
         usageLoadState: SeatUsageLoadState
     ) {
-        let fittedPrimary = DisplayNameMenuFit.rootTitle(menuPrimary.text)
+        let rawPrimary = seat.userLabel?.value ?? menuPrimary.text
+        let fittedPrimary = DisplayNameMenuFit.rootTitle(rawPrimary)
         self.primaryName = fittedPrimary
         self.helpText = AccountLabelResolver.menuHelpText(
             policy: seat.identityPolicy,
@@ -50,7 +55,13 @@ public struct AccountMenuRowModel: Sendable, Equatable, Hashable {
         self.pill = seat.pill
         self.showsActiveIDE = seat.isDesktopBound
         self.secondarySummary = Self.secondarySummary(for: seat, usageLoadState: usageLoadState)
+        self.submenuStatusLine = Self.submenuStatusLine(for: seat, usageLoadState: usageLoadState)
         self.accessibilityLabel = seat.accessibilityLabel
+    }
+
+    /// NSMenu flattens custom labels to this string. Checkmark must live in the title.
+    public var rootItemTitle: String {
+        showsActiveIDE ? "✓ \(primaryName)" : primaryName
     }
 
     public var cursorMetricText: String {
@@ -133,6 +144,67 @@ public struct AccountMenuRowModel: Sendable, Equatable, Hashable {
 
     public static func secondarySummary(for seat: SeatPresentation) -> String {
         secondarySummary(for: seat, usageLoadState: nil)
+    }
+
+    /// Submenu facts only. Identity stays on the parent item; skip "Signed in" and pill essays.
+    public static func submenuStatusLine(
+        for seat: SeatPresentation,
+        usageLoadState: SeatUsageLoadState? = nil
+    ) -> String {
+        var parts: [String] = []
+        if seat.isDesktopBound {
+            parts.append("Active")
+        }
+        switch seat.auth {
+        case .signedOut:
+            parts.append("Signed out")
+        case .signingIn:
+            parts.append("Signing in")
+        case .needsReauth:
+            parts.append("Needs reauth")
+        case .signedIn:
+            break
+        }
+        if let planName = seat.planName {
+            parts.append(planName.capitalized)
+        }
+        let load = usageLoadState ?? seat.usageLoadState
+        let metricsLoad: SeatUsageLoadState? = {
+            switch load {
+            case .ready:
+                return nil
+            case .unavailable:
+                if seat.autoPercent != nil || seat.apiPercent != nil {
+                    return nil
+                }
+                return .pending
+            case .pending, .failed:
+                return load
+            }
+        }()
+        parts.append(
+            metricText(
+                pool: .cursorModels,
+                percent: seat.autoPercent.map { Int($0.percent.rounded()) },
+                loadState: metricsLoad
+            )
+        )
+        parts.append(
+            metricText(
+                pool: .otherModels,
+                percent: seat.apiPercent.map { Int($0.percent.rounded()) },
+                loadState: metricsLoad
+            )
+        )
+        if let onDemand = seat.onDemand {
+            parts.append(onDemand.spendLine)
+        } else if let pill = seat.pill {
+            parts.append(pill.shortTitle)
+        }
+        if let credits = seat.credits, case .present(let balance, _, _) = credits {
+            parts.append("Credits $\(String(format: "%.2f", Double(balance.cents) / 100.0))")
+        }
+        return parts.joined(separator: " · ")
     }
 }
 

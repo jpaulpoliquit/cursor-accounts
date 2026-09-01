@@ -34,7 +34,7 @@ enum UsageAllTimeSeriesLoader {
             from: start,
             through: end,
             timeZone: timeZone,
-            limit: HistoryWarmBudget.default.maxMonths
+            limit: HistoryWarmBudget.seriesAllTime.maxMonths
         )
         let firstDays = months.first.map { $0.overlappingUTCDays(timeZone: timeZone) }
         let lastDays = months.last.map { $0.overlappingUTCDays(timeZone: timeZone) }

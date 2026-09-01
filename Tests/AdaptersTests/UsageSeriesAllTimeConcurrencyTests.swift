@@ -62,7 +62,7 @@ final class UsageSeriesAllTimeConcurrencyTests: XCTestCase {
         let start = UsageDayKey(year: 2024, month: 1, day: 1)
         let end = UsageDayKey(year: 2026, month: 8, day: 15)
         let unbounded = UsageRangeChunks.months(from: start, through: end, timeZone: tz).count
-        XCTAssertGreaterThan(unbounded, HistoryWarmBudget.default.maxMonths)
+        XCTAssertGreaterThan(unbounded, HistoryWarmBudget.seriesAllTime.maxMonths)
         nonisolated(unsafe) var calls = 0
         let client = DashboardClient { request in
             if request.url?.lastPathComponent == "GetDailySpendByCategory" {
@@ -81,7 +81,7 @@ final class UsageSeriesAllTimeConcurrencyTests: XCTestCase {
         guard case .applied = commit else {
             return XCTFail("expected applied")
         }
-        XCTAssertLessThanOrEqual(calls, HistoryWarmBudget.default.maxMonths)
+        XCTAssertLessThanOrEqual(calls, HistoryWarmBudget.seriesAllTime.maxMonths)
         XCTAssertLessThan(calls, unbounded)
     }
 

@@ -6,9 +6,14 @@ struct DashboardModelsPane: View {
     var dashboardVisible: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: CursorProfile.sectionSpacing) {
-            HStack(alignment: .center, spacing: 12) {
-                UsageRangeControls(coordinator: model.usageSeries, showsScope: true)
+        VStack(alignment: .leading, spacing: CursorProfile.cardPadding) {
+            HStack(alignment: .center, spacing: CursorProfile.itemSpacing) {
+                UsageRangeControls(
+                    coordinator: model.usageSeries,
+                    showsScope: true,
+                    layout: .toolbar
+                )
+                Spacer(minLength: CursorProfile.cardPadding)
                 DashboardGroupBySelect(selection: $model.modelGroup)
             }
             if dashboardVisible {

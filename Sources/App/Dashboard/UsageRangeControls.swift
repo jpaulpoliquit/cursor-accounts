@@ -2,11 +2,19 @@ import CursorBarDomain
 import SwiftUI
 
 struct UsageRangeControls: View {
+    enum Layout {
+        /// Chart header — range title fills the row.
+        case hero
+        /// Table toolbar — scope, stepper, and calendar hug content.
+        case toolbar
+    }
+
     @Bindable var coordinator: UsageSeriesCoordinator
     var showsScope: Bool = false
+    var layout: Layout = .hero
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: layout == .toolbar ? 10 : 8) {
             if showsScope {
                 Picker("Account", selection: scopeBinding) {
                     ForEach(Array(coordinator.scopeOptions.enumerated()), id: \.offset) { _, option in
@@ -21,27 +29,31 @@ struct UsageRangeControls: View {
                 .accessibilityLabel("Usage scope")
             }
 
-            Button {
-                coordinator.goToPreviousMonth()
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-            .disabled(!coordinator.canGoPrevious)
-            .accessibilityLabel("Previous month")
+            HStack(spacing: 6) {
+                Button {
+                    coordinator.goToPreviousMonth()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .disabled(!coordinator.canGoPrevious)
+                .accessibilityLabel("Previous month")
 
-            Text(coordinator.rangeTitle)
-                .font(CursorProfile.Font.meta)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
-                .accessibilityLabel(coordinator.range.accessibilityLabel)
+                Text(coordinator.rangeTitle)
+                    .font(CursorProfile.Font.table)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: layout == .hero ? .infinity : nil)
+                    .fixedSize(horizontal: layout == .toolbar, vertical: false)
+                    .accessibilityLabel(coordinator.range.accessibilityLabel)
 
-            Button {
-                coordinator.goToNextMonth()
-            } label: {
-                Image(systemName: "chevron.right")
+                Button {
+                    coordinator.goToNextMonth()
+                } label: {
+                    Image(systemName: "chevron.right")
+                }
+                .disabled(!coordinator.canGoNext)
+                .accessibilityLabel("Next month")
             }
-            .disabled(!coordinator.canGoNext)
-            .accessibilityLabel("Next month")
+            .frame(maxWidth: layout == .hero ? .infinity : nil)
 
             Menu {
                 Button("This month") {

@@ -10,6 +10,9 @@ struct UsageModelCatalogView: View {
     @Binding var sort: DashboardModelSort
     @Binding var direction: DashboardSortDirection
     @Environment(\.colorScheme) private var colorScheme
+    @State private var collapsedFamilies: Set<ModelDisplayNames.Family> = []
+    @State private var collapsedLines: Set<String> = []
+    @State private var hoveredIntent: String?
 
     init(
         catalog: ModelPricingCatalog,
@@ -31,17 +34,19 @@ struct UsageModelCatalogView: View {
         if catalog.isEmpty {
             EmptyView()
         } else {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: CursorProfile.sectionSpacing) {
                 if showsTitle {
                     Text("Models")
                         .font(CursorProfile.Font.section)
                 }
                 totals
-                table
-                Text(ModelPricingCatalog.methodologyCopy)
-                    .font(CursorProfile.Font.meta)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: CursorProfile.cardPadding) {
+                    table
+                    Text(ModelPricingCatalog.methodologyCopy)
+                        .font(CursorProfile.Font.meta)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(
@@ -65,10 +70,10 @@ struct UsageModelCatalogView: View {
 
     private var totals: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 24) {
+            HStack(alignment: .top, spacing: CursorProfile.sectionSpacing) {
                 totalStats
             }
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: CursorProfile.cardPadding) {
                 totalStats
             }
         }
@@ -76,56 +81,48 @@ struct UsageModelCatalogView: View {
 
     @ViewBuilder
     private var totalStats: some View {
-        CursorProfileStat(
+        headerStat(
             label: ActivityCostSemantics.usageValueLabel,
             value: ActivityCostSemantics.formatCents(catalog.totalUsageValueCents)
         )
-        CursorProfileStat(
+        headerStat(
             label: ActivityCostSemantics.onDemandChargedLabel,
             value: ActivityCostSemantics.formatCents(catalog.totalOnDemandChargedCents)
         )
-        CursorProfileStat(
+        headerStat(
             label: "Subsidized",
             value: ActivityCostSemantics.formatCents(catalog.totalSubsidizedCents)
         )
         .help(ModelPricingCatalog.subsidizedHelp)
     }
 
+    private func headerStat(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: CursorProfile.clusterSpacing) {
+            Text(value)
+                .font(CursorProfile.Font.statValue)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(CursorProfile.Font.section)
+                .foregroundStyle(.secondary)
+                .accessibilityAddTraits(.isHeader)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label) \(value)")
+    }
+
     private var table: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 16) {
-                sortHeader(.name, alignment: .leading)
-                    .frame(minWidth: 140, maxWidth: .infinity, alignment: .leading)
-                sortHeader(.requests, alignment: .trailing)
-                    .frame(width: 72, alignment: .trailing)
-                sortHeader(.tokens, alignment: .trailing)
-                    .frame(width: 72, alignment: .trailing)
-                sortHeader(.value, alignment: .trailing)
-                    .frame(width: 72, alignment: .trailing)
-                sortHeader(.charged, alignment: .trailing)
-                    .frame(width: 72, alignment: .trailing)
-                sortHeader(.rate, alignment: .trailing)
-                    .frame(width: 88, alignment: .trailing)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(CursorProfile.hairline(colorScheme, highContrast: false))
-                    .frame(height: 1)
-                    .padding(.leading, 14)
-            }
-
             if group == .family {
                 ForEach(familySections) { section in
-                    familyHeader(section)
-                    ForEach(section.rows, id: \.modelIntent) { row in
-                        modelRow(row)
-                    }
+                    familyGroup(section)
                 }
             } else {
+                columnHeader(nested: false)
                 ForEach(rows, id: \.modelIntent) { row in
-                    modelRow(row)
+                    modelRow(row, nameInset: 0)
                 }
             }
         }
@@ -137,42 +134,109 @@ struct UsageModelCatalogView: View {
         }
     }
 
-    private func familyHeader(_ section: ModelFamilySection) -> some View {
-        HStack(spacing: 8) {
-            Text(section.family.title)
-                .font(.system(size: 13, weight: .semibold))
-            Text("\(section.rows.count)")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 0)
+    private func familyGroup(_ section: ModelFamilySection) -> some View {
+        let collapsed = collapsedFamilies.contains(section.family)
+        let lines = ActivityModelCatalog.lines(in: section.rows, family: section.family)
+        let showLines = lines.count > 1
+        return VStack(alignment: .leading, spacing: 0) {
+            DashboardTableGroupHeader(
+                title: section.family.title,
+                countLabel: ModelDisplayNames.familyGroupCountLabel(section.rows.count),
+                kind: .family,
+                collapsed: collapsed
+            ) {
+                toggleFamily(section.family)
+            }
+            if !collapsed {
+                columnHeader(nested: true)
+                if showLines {
+                    ForEach(lines) { line in
+                        lineGroup(line, family: section.family)
+                    }
+                } else {
+                    ForEach(section.rows, id: \.modelIntent) { row in
+                        modelRow(row, nameInset: DashboardTableGroupMetrics.nestedInset)
+                    }
+                }
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(CursorProfile.hairline(colorScheme, highContrast: false))
-                .frame(height: 1)
-                .padding(.leading, 14)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-        .accessibilityLabel("\(section.family.title), \(section.rows.count)")
+        .accessibilityElement(children: .contain)
     }
 
-    private func modelRow(_ row: ModelPricingRow) -> some View {
-        HStack(spacing: 10) {
+    private func lineGroup(_ section: ModelLineSection, family: ModelDisplayNames.Family) -> some View {
+        let key = lineKey(family, section.line)
+        let collapsed = collapsedLines.contains(key)
+        return VStack(alignment: .leading, spacing: 0) {
+            DashboardTableGroupHeader(
+                title: section.line.title,
+                countLabel: ModelDisplayNames.familyGroupCountLabel(section.rows.count),
+                kind: .line,
+                collapsed: collapsed
+            ) {
+                toggleLine(key)
+            }
+            if !collapsed {
+                ForEach(section.rows, id: \.modelIntent) { row in
+                    modelRow(row, nameInset: DashboardTableGroupMetrics.nestedInset * 2)
+                }
+            }
+        }
+    }
+
+    private func toggleFamily(_ family: ModelDisplayNames.Family) {
+        if collapsedFamilies.contains(family) {
+            collapsedFamilies.remove(family)
+        } else {
+            collapsedFamilies.insert(family)
+        }
+    }
+
+    private func toggleLine(_ key: String) {
+        if collapsedLines.contains(key) {
+            collapsedLines.remove(key)
+        } else {
+            collapsedLines.insert(key)
+        }
+    }
+
+    private func lineKey(_ family: ModelDisplayNames.Family, _ line: ModelDisplayNames.Line) -> String {
+        "\(family.rawValue)/\(line.id)"
+    }
+
+    private func columnHeader(nested: Bool) -> some View {
+        HStack(spacing: 16) {
+            sortHeader(.name, alignment: .leading)
+                .padding(.leading, nested ? DashboardTableGroupMetrics.nestedInset : 0)
+                .frame(minWidth: 140, maxWidth: .infinity, alignment: .leading)
+            sortHeader(.requests, alignment: .trailing)
+                .frame(width: 72, alignment: .trailing)
+            sortHeader(.tokens, alignment: .trailing)
+                .frame(width: 72, alignment: .trailing)
+            sortHeader(.value, alignment: .trailing)
+                .frame(width: 72, alignment: .trailing)
+            sortHeader(.charged, alignment: .trailing)
+                .frame(width: 72, alignment: .trailing)
+            sortHeader(.rate, alignment: .trailing)
+                .frame(width: 88, alignment: .trailing)
+        }
+        .padding(.horizontal, DashboardTableGroupMetrics.edgeInset)
+        .frame(height: DashboardTableGroupMetrics.columnHeaderHeight)
+        .overlay(alignment: .bottom) { rowRule }
+    }
+
+    private func modelRow(_ row: ModelPricingRow, nameInset: CGFloat) -> some View {
+        let hovered = hoveredIntent == row.modelIntent
+        return HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.displayName)
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                if let timeline = ActivityModelCatalog.rateTimelineCaption(for: row, timeZone: timeZone) {
-                    Text(timeline)
-                        .font(CursorProfile.Font.meta)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                if let change = ActivityModelCatalog.rateChange(for: row, timeZone: timeZone) {
+                    ModelRateChangeLabel(change: change)
                 }
             }
+            .padding(.leading, nameInset)
             .frame(minWidth: 140, maxWidth: .infinity, alignment: .leading)
 
             Text("\(row.requestCount)")
@@ -195,16 +259,27 @@ struct UsageModelCatalogView: View {
                 .minimumScaleFactor(0.75)
                 .frame(width: 88, alignment: .trailing)
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, DashboardTableGroupMetrics.edgeInset)
         .padding(.vertical, 11)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(CursorProfile.hairline(colorScheme, highContrast: false))
-                .frame(height: 1)
-                .padding(.leading, 14)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(hovered ? CursorProfile.quaternaryFill(colorScheme) : Color.clear)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+        }
+        .overlay(alignment: .bottom) { rowRule }
+        .onHover { hovering in
+            hoveredIntent = hovering ? row.modelIntent : (hoveredIntent == row.modelIntent ? nil : hoveredIntent)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibility(row))
+    }
+
+    private var rowRule: some View {
+        Rectangle()
+            .fill(CursorProfile.hairline(colorScheme, highContrast: false))
+            .frame(height: 1)
+            .padding(.leading, DashboardTableGroupMetrics.edgeInset)
     }
 
     private func sortHeader(_ column: DashboardModelSort, alignment: HorizontalAlignment) -> some View {

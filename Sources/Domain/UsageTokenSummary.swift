@@ -96,6 +96,32 @@ public struct RankedModelUsage: Sendable, Equatable, Hashable, Codable {
     }
 }
 
+/// One Newton line (Cursor Grok 4.5), with its variants rolled up.
+public struct RankedModelLine: Sendable, Equatable, Hashable, Identifiable {
+    public var id: String { "\(family.rawValue)|\(line.id)" }
+    public let family: ModelDisplayNames.Family
+    public let line: ModelDisplayNames.Line
+    public let tokens: Int64
+    public let share: Double
+    public let variants: [RankedModelUsage]
+
+    public init(
+        family: ModelDisplayNames.Family,
+        line: ModelDisplayNames.Line,
+        tokens: Int64,
+        share: Double,
+        variants: [RankedModelUsage]
+    ) {
+        self.family = family
+        self.line = line
+        self.tokens = tokens
+        self.share = share
+        self.variants = variants
+    }
+
+    public var title: String { line.title }
+}
+
 /// Per-seat aggregate decode before multi-seat merge. Keeps the full model list.
 public struct SeatUsageTokenSummary: Sendable, Equatable, Hashable {
     public let seatID: SeatID
@@ -183,6 +209,15 @@ public struct UsageTokenSummary: Sendable, Equatable, Hashable, Codable {
         self.temporalCoverage = temporalCoverage
         self.fetchedAt = fetchedAt
     }
+
+    /// Top generations. `topModels` keeps the leaf variants of those lines for snapshots.
+    public var topLines: [RankedModelLine] {
+        UsageTokenSummaryAggregator.rankedTopLines(
+            from: topModels.map(\.model),
+            summaryTotal: totals.total,
+            limit: UsageTokenSummaryAggregator.topModelLimit
+        )
+    }
 }
 
 /// Pure ranking, share, and multi-seat merge for token summaries.
@@ -194,23 +229,57 @@ public enum UsageTokenSummaryAggregator {
         return Double(modelTotal) / Double(summaryTotal)
     }
 
+    public static func rankedTopLines(
+        from models: [ModelUsageRow],
+        summaryTotal: Int64,
+        limit: Int = topModelLimit
+    ) -> [RankedModelLine] {
+        let families = ModelHierarchy.grouped(
+            models,
+            intent: \.modelIntent,
+            displayName: \.displayName
+        )
+        let lines = families.flatMap { family in
+            family.lines.map { bucket -> RankedModelLine in
+                let variants = bucket.items
+                    .sorted { lhs, rhs in
+                        if lhs.buckets.total != rhs.buckets.total {
+                            return lhs.buckets.total > rhs.buckets.total
+                        }
+                        return lhs.modelIntent < rhs.modelIntent
+                    }
+                    .map { model in
+                        RankedModelUsage(
+                            model: model,
+                            share: share(modelTotal: model.buckets.total, summaryTotal: summaryTotal)
+                        )
+                    }
+                let tokens = variants.reduce(Int64(0)) { $0 + $1.model.buckets.total }
+                return RankedModelLine(
+                    family: family.family,
+                    line: bucket.line,
+                    tokens: tokens,
+                    share: share(modelTotal: tokens, summaryTotal: summaryTotal),
+                    variants: variants
+                )
+            }
+        }
+        return Array(
+            lines.sorted { lhs, rhs in
+                if lhs.tokens != rhs.tokens { return lhs.tokens > rhs.tokens }
+                return lhs.line.title < rhs.line.title
+            }
+            .prefix(max(0, limit))
+        )
+    }
+
     public static func rankedTopModels(
         from models: [ModelUsageRow],
         summaryTotal: Int64,
         limit: Int = topModelLimit
     ) -> [RankedModelUsage] {
-        let sorted = models.sorted { lhs, rhs in
-            if lhs.buckets.total != rhs.buckets.total {
-                return lhs.buckets.total > rhs.buckets.total
-            }
-            return lhs.modelIntent < rhs.modelIntent
-        }
-        return Array(sorted.prefix(max(0, limit))).map { model in
-            RankedModelUsage(
-                model: model,
-                share: share(modelTotal: model.buckets.total, summaryTotal: summaryTotal)
-            )
-        }
+        rankedTopLines(from: models, summaryTotal: summaryTotal, limit: limit)
+            .flatMap(\.variants)
     }
 
     public static func aggregate(

@@ -33,4 +33,15 @@ public struct ActivityDayKey: Sendable, Equatable, Hashable, Comparable, Codable
     public var isoDate: String {
         String(format: "%04d-%02d-%02d", year, month, day)
     }
+
+    public func adding(days: Int, timeZone: TimeZone) -> ActivityDayKey {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        guard let date = calendar.date(from: DateComponents(year: year, month: month, day: day)),
+              let next = calendar.date(byAdding: .day, value: days, to: date)
+        else {
+            return self
+        }
+        return ActivityDayKey.localDay(containing: next, timeZone: timeZone)
+    }
 }

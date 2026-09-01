@@ -32,6 +32,7 @@ struct DashboardProfileTabBar: View {
                 .foregroundStyle(selected ? Color.primary : Color.secondary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
+                .contentShape(Capsule())
                 .background {
                     if selected {
                         Capsule(style: .continuous)
@@ -72,6 +73,7 @@ struct DashboardPillSegmentedControl<Option: Hashable, Item: View>: View {
                         .foregroundStyle(selected ? Color.primary : Color.secondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
+                        .contentShape(Capsule())
                         .background {
                             if selected {
                                 Capsule(style: .continuous)
@@ -112,7 +114,7 @@ struct DashboardPageHeader: View {
     @Bindable var model: AppModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: CursorProfile.cardPadding) {
             HStack(alignment: .top, spacing: 20) {
                 HStack(alignment: .center, spacing: 12) {
                     if showsIdentity {

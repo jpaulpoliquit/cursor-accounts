@@ -48,6 +48,15 @@ public struct DayActivity: Sendable, Equatable, Hashable, Codable {
 
     public var spanHours: Double { Double(spanMs) / 3_600_000.0 }
     public var estimatedActiveHours: Double { Double(estimatedActiveMs) / 3_600_000.0 }
+
+    /// First-to-last on the calendar day. Overlapping accounts count once. Never exceeds 24h.
+    public var calendarSpanMs: Int64 {
+        let dayMs: Int64 = 24 * 3_600_000
+        if let first = firstRequestMs, let last = lastRequestMs, last >= first {
+            return min(last - first, dayMs)
+        }
+        return min(max(0, spanMs), dayMs)
+    }
 }
 
 /// Money totals for a selected Insights range. Distinct from seat-card current-period on-demand.
@@ -111,16 +120,22 @@ public struct ActivityCoverage: Sendable, Equatable, Hashable, Codable {
         if truncated {
             if let total = reportedTotalEventCount, total > fetchedEventCount {
                 parts.append(
-                    "Showing \(fetchedEventCount) of \(total) requests — history still loading"
+                    "\(TokenCountFormat.grouped(fetchedEventCount)) of \(TokenCountFormat.grouped(total)) requests"
                 )
             } else {
-                parts.append("Partial request history (\(fetchedEventCount) loaded)")
+                parts.append("\(TokenCountFormat.grouped(fetchedEventCount)) requests loaded")
             }
         }
         if hasPartialSeatCoverage {
-            parts.append("\(successfulSeatCount) of \(requestedSeatCount) accounts loaded")
+            parts.append(
+                "\(TokenCountFormat.grouped(successfulSeatCount)) of \(TokenCountFormat.grouped(requestedSeatCount)) accounts"
+            )
             if failedSeatCount > 0 {
-                parts.append("\(failedSeatCount) failed — try Refresh")
+                parts.append(
+                    failedSeatCount == 1
+                        ? "1 account unavailable"
+                        : "\(TokenCountFormat.grouped(failedSeatCount)) accounts unavailable"
+                )
             }
         }
         if isPartialMonth {
@@ -193,6 +208,8 @@ public struct MonthOverMonthComparison: Sendable, Equatable, Hashable, Codable {
         self.allowsProse = allowsProse
         self.proseLines = proseLines
     }
+
+    public var versusLabel: String { "vs \(previousLabel)" }
 }
 
 /// Pure insights snapshot for one scope + range.
@@ -265,6 +282,27 @@ public struct ActivityInsights: Sendable, Equatable, Hashable, Codable {
         self.modelCatalog = modelCatalog
     }
 
+    /// Wall-clock first-to-last. All-accounts sums seats, so the value can exceed 24 hours.
+    public var spanLabel: String {
+        estimatedActiveIsPerSeatSum ? "Combined span" : "Daily span"
+    }
+
+    public var spanHelp: String {
+        if estimatedActiveIsPerSeatSum {
+            return "First to last request, summed across accounts. Can exceed 24 hours."
+        }
+        return "First to last request that day. Median across active days."
+    }
+
+    public var agentTimeLabel: String { "Agent time" }
+
+    public var agentTimeHelp: String {
+        if estimatedActiveIsPerSeatSum {
+            return "\(idleGap.methodologyCopy) Summed per account."
+        }
+        return idleGap.methodologyCopy
+    }
+
     public var peakHourRangeAccessibility: String {
         guard totalRequests > 0 else { return "No requests in this range" }
         let maxCount = hourOfDayCounts.max() ?? 0
@@ -328,38 +366,4 @@ public struct ActivityInsights: Sendable, Equatable, Hashable, Codable {
         return "\(hours)h \(minutes)m"
     }
 
-    /// Tokens for the focused seat vs the collective snapshot. Either side can be missing.
-    public func tokenHeadline(thisSeatID: SeatID?) -> (thisAccount: Int64?, allAccounts: Int64?) {
-        let thisAccount: Int64?
-        if let thisSeatID, let row = seatActivityTotals(seatID: thisSeatID) {
-            thisAccount = row.tokens
-        } else if case .account(let id) = scope, id == thisSeatID {
-            thisAccount = totalTokens
-        } else {
-            thisAccount = nil
-        }
-        let allAccounts: Int64?
-        switch scope {
-        case .allAccounts:
-            allAccounts = totalTokens
-        case .account:
-            allAccounts = nil
-        }
-        return (thisAccount, allAccounts)
-    }
-
-    /// Per-seat rollup from All Accounts day contributions. Empty when history has no seat slices.
-    public func seatActivityTotals(seatID: SeatID) -> (tokens: Int64, requests: Int)? {
-        var tokens: Int64 = 0
-        var requests = 0
-        var sawContribution = false
-        for day in days {
-            guard let row = day.contributions.first(where: { $0.seatID == seatID }) else { continue }
-            sawContribution = true
-            tokens += row.tokens
-            requests += row.requestCount
-        }
-        guard sawContribution else { return nil }
-        return (tokens, requests)
-    }
 }

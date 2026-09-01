@@ -58,19 +58,11 @@ struct UsageChartPlotView: View {
 
     @ViewBuilder
     private func chartStack(plotted: [UsagePoint]) -> some View {
-        let stackAllAccounts: Bool = {
-            if case .allAccounts = series.scope { return true }
-            return false
-        }()
-        let stackedPoints = stackAllAccounts ? plotted : []
-        let singlePoints = stackAllAccounts ? [] : plotted
         let yMax = plotted.map { $0.value(for: metric) }.filter(\.isFinite).max() ?? 0
         let yDomain: ClosedRange<Double> = 0...max(1, yMax)
         VStack(alignment: .leading, spacing: 12) {
             Chart {
-                singleAccountMarks(points: singlePoints)
-                stackedMarks(points: stackedPoints)
-                aggregateBoundary(points: stackedPoints)
+                totalMarks(points: plotted)
                 ForEach(selectedInspections, id: \.day) { inspection in
                     selectionMarks(for: inspection)
                 }
@@ -149,66 +141,25 @@ struct UsageChartPlotView: View {
     }
 
     @ChartContentBuilder
-    private func singleAccountMarks(points: [UsagePoint]) -> some ChartContent {
+    private func totalMarks(points: [UsagePoint]) -> some ChartContent {
         ForEach(points, id: \.day) { point in
             let x = date(for: point.day)
             let y = point.value(for: metric)
-            AreaMark(x: .value("Day", x), y: .value(metric.chartTitle, y))
-                .interpolationMethod(.linear)
-                .foregroundStyle(CursorProfile.areaFill(colorScheme, highContrast: contrast == .increased))
-            LineMark(x: .value("Day", x), y: .value(metric.chartTitle, y))
-                .interpolationMethod(.linear)
-                .foregroundStyle(CursorProfile.lineStroke(highContrast: contrast == .increased))
-                .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-        }
-    }
-
-    @ChartContentBuilder
-    private func stackedMarks(points: [UsagePoint]) -> some ChartContent {
-        ForEach(points, id: \.day) { point in
-            let x = date(for: point.day)
-            let ordered = point.contributions.sorted { $0.seatID.rawValue < $1.seatID.rawValue }
-            ForEach(Array(stackBands(ordered).enumerated()), id: \.offset) { _, band in
-                AreaMark(
-                    x: .value("Day", x),
-                    yStart: .value("Start", band.start),
-                    yEnd: .value("End", band.end)
-                )
-                .interpolationMethod(.linear)
-                .foregroundStyle(CursorProfile.accountTint(for: band.seatID).opacity(0.55))
-            }
-        }
-    }
-
-    private struct StackBand: Identifiable {
-        var id: SeatID { seatID }
-        let seatID: SeatID
-        let start: Double
-        let end: Double
-    }
-
-    private func stackBands(_ contributions: [DayAccountContribution]) -> [StackBand] {
-        var cursor = 0.0
-        var bands: [StackBand] = []
-        for contribution in contributions {
-            let value = metricValue(contribution)
-            let start = cursor
-            let end = cursor + value
-            bands.append(StackBand(seatID: contribution.seatID, start: start, end: end))
-            cursor = end
-        }
-        return bands
-    }
-
-    @ChartContentBuilder
-    private func aggregateBoundary(points: [UsagePoint]) -> some ChartContent {
-        ForEach(points, id: \.day) { point in
-            let x = date(for: point.day)
-            let y = point.value(for: metric)
-            LineMark(x: .value("Day", x), y: .value("Total", y))
-                .interpolationMethod(.linear)
-                .foregroundStyle(CursorProfile.lineStroke(highContrast: contrast == .increased))
-                .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+            AreaMark(
+                x: .value("Day", x, unit: .day),
+                y: .value(metric.chartTitle, y),
+                series: .value("Series", "total")
+            )
+            .interpolationMethod(.linear)
+            .foregroundStyle(CursorProfile.areaFill(colorScheme, highContrast: contrast == .increased))
+            LineMark(
+                x: .value("Day", x, unit: .day),
+                y: .value(metric.chartTitle, y),
+                series: .value("Series", "total")
+            )
+            .interpolationMethod(.linear)
+            .foregroundStyle(CursorProfile.lineStroke(highContrast: contrast == .increased))
+            .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
         }
     }
 
@@ -217,10 +168,10 @@ struct UsageChartPlotView: View {
         let x = date(for: inspection.day)
         let y = inspectionValue(inspection)
         // cursor.com/@jpl: 1px quaternary rule + 6pt accent dot. Nothing when not hovering.
-        RuleMark(x: .value("Selected", x))
+        RuleMark(x: .value("Selected", x, unit: .day))
             .foregroundStyle(CursorProfile.quaternaryFill(colorScheme))
             .lineStyle(StrokeStyle(lineWidth: 1))
-        PointMark(x: .value("Selected", x), y: .value(metric.chartTitle, y))
+        PointMark(x: .value("Selected", x, unit: .day), y: .value(metric.chartTitle, y))
             .foregroundStyle(CursorProfile.chartAccent)
             .symbolSize(28)
     }
@@ -361,15 +312,6 @@ struct UsageChartPlotView: View {
             return 220
         }
         return 140
-    }
-
-    private func metricValue(_ contribution: DayAccountContribution) -> Double {
-        switch metric {
-        case .tokens:
-            return Double(contribution.tokens)
-        case .costCents:
-            return Double(contribution.spendCents ?? 0)
-        }
     }
 
     private func tooltipHeight(_ inspection: UsageDayInspection) -> CGFloat {

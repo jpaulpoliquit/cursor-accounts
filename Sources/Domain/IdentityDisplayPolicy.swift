@@ -4,4 +4,6 @@ import Foundation
 public enum IdentityDisplayPolicy: String, Codable, Sendable, Equatable, Hashable, CaseIterable {
     case revealEmail
     case maskEmail
+
+    public static let defaultsKey = "identityDisplayPolicy"
 }

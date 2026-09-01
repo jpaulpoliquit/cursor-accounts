@@ -52,7 +52,7 @@ ensure_project() {
 run_unit_tests() {
   ensure_project
   run xcodebuild \
-    -scheme CursorBar \
+    -scheme "Cursor Accounts" \
     -destination 'platform=macOS' \
     -derivedDataPath "${OUT_DIR}/DerivedData" \
     test \
@@ -132,6 +132,45 @@ static_architecture_checks() {
       log "FAIL: project.yml CFBundleDisplayName must stay Cursor Accounts"
       bad=1
     fi
+    if ! rg -n 'SCHEME="Cursor Accounts"' Scripts/install.sh Scripts/package-dmg.sh >/dev/null; then
+      log "FAIL: install and package scripts must build the Cursor Accounts scheme"
+      bad=1
+    fi
+    if ! rg -n 'install_cli_shortcut' Scripts/install.sh >/dev/null; then
+      log "FAIL: install.sh must put cursor-accounts on PATH"
+      bad=1
+    fi
+    if ! rg -n 'Contents/MacOS/cursor-accounts' Scripts/install.sh >/dev/null; then
+      log "FAIL: install.sh must require the embedded cursor-accounts binary"
+      bad=1
+    fi
+    if rg -n 'SCHEME="CursorBar"' Scripts/install.sh Scripts/package-dmg.sh >/dev/null; then
+      log "FAIL: install and package scripts must not use the old CursorBar scheme name"
+      bad=1
+    fi
+    if ! rg -n -- '-scheme "Cursor Accounts"' Scripts/verify.sh >/dev/null; then
+      log "FAIL: verify.sh must build the Cursor Accounts scheme"
+      bad=1
+    fi
+    if ! rg -n 'Cursor Accounts:' project.yml >/dev/null; then
+      log "FAIL: project.yml scheme must be Cursor Accounts"
+      bad=1
+    fi
+    if ! rg -n 'executable: CursorBar' project.yml >/dev/null; then
+      log "FAIL: Cursor Accounts scheme must launch CursorBar, not the CLI"
+      bad=1
+    fi
+    scheme="CursorBar.xcodeproj/xcshareddata/xcschemes/Cursor Accounts.xcscheme"
+    if [[ -f "${scheme}" ]]; then
+      if awk '/<LaunchAction/,/<\/LaunchAction>/' "${scheme}" | rg -q 'BuildableName = "cursor-accounts"'; then
+        log "FAIL: scheme LaunchAction must run Cursor Accounts.app"
+        bad=1
+      fi
+      if ! awk '/<LaunchAction/,/<\/LaunchAction>/' "${scheme}" | rg -q 'BuildableName = "Cursor Accounts.app"'; then
+        log "FAIL: scheme LaunchAction must run Cursor Accounts.app"
+        bad=1
+      fi
+    fi
     for chart in \
       Sources/App/Dashboard/UsageChartPlotView.swift \
       Sources/App/Dashboard/UsageInsightsChartsView.swift
@@ -158,7 +197,7 @@ static_architecture_checks() {
 build_app() {
   ensure_project
   run xcodebuild \
-    -scheme CursorBar \
+    -scheme "Cursor Accounts" \
     -destination 'platform=macOS' \
     -derivedDataPath "${OUT_DIR}/DerivedData" \
     -configuration Debug \
@@ -345,7 +384,7 @@ run_live_ro() {
   trap cleanup_live_flags EXIT
   log "live-ro flags: ${LIVE_RO_FLAG_DOCUMENTED} ${LIVE_RO_FLAG_TMPDIR}"
   run env LIVE_DASHBOARD_VERIFY=1 TEST_RUNNER_LIVE_DASHBOARD_VERIFY=1 CURSORBAR_LIVE=1 xcodebuild \
-    -scheme CursorBar \
+    -scheme "Cursor Accounts" \
     -destination 'platform=macOS' \
     -derivedDataPath "${OUT_DIR}/DerivedData" \
     -only-testing:CursorBarAdaptersTests/LiveDashboardReadVerifyTests \

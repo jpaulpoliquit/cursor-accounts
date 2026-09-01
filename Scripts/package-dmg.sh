@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build Cursor Accounts (Release) and write dist/Cursor-Accounts-0.1.0.dmg
+# Build Cursor Accounts (Release) and write dist/Cursor-Accounts-0.2.0.dmg
 # with the .app, an /Applications symlink, and a short Read Me.
 # Set APP_PATH to an existing Cursor Accounts.app to skip xcodebuild.
 set -euo pipefail
@@ -10,9 +10,9 @@ cd "$ROOT"
 PRODUCT_DISPLAY="Cursor Accounts"
 APP_NAME="Cursor Accounts.app"
 EXECUTABLE="Cursor Accounts"
-SCHEME="CursorBar"
+SCHEME="Cursor Accounts"
 CONFIGURATION="Release"
-VERSION="${VERSION:-0.1.0}"
+VERSION="${VERSION:-0.2.0}"
 VOL_NAME="Cursor Accounts"
 DIST_DIR="${ROOT}/dist"
 DMG_NAME="Cursor-Accounts-${VERSION}.dmg"
@@ -83,7 +83,7 @@ resolve_app() {
 
   if need_xcodegen; then
     command -v xcodegen >/dev/null || fail "xcodegen required (brew install xcodegen)"
-    xcodegen generate
+    xcodegen generate >&2
   fi
 
   mkdir -p "${DERIVED}"
@@ -149,7 +149,7 @@ EOF
 
 verify_dmg() {
   local mount
-  mount="$(hdiutil attach -nobrowse -readonly "${DMG_PATH}" | awk '/\/Volumes\// { print $NF; exit }')"
+  mount="$(hdiutil attach -nobrowse -readonly "${DMG_PATH}" | awk -F'\t' '/\/Volumes\// { print $NF; exit }')"
   [[ -n "${mount}" && -d "${mount}" ]] || fail "could not mount ${DMG_PATH}"
   MOUNT="${mount}"
   [[ -d "${mount}/${APP_NAME}" ]] || fail "DMG is missing ${APP_NAME}"
@@ -188,7 +188,7 @@ hdiutil create \
 
 echo "+ attach for Finder layout"
 ATTACH_OUT="$(hdiutil attach -readwrite -noverify -noautoopen "${RW_DMG}")"
-MOUNT="$(printf '%s\n' "${ATTACH_OUT}" | awk '/\/Volumes\// { print $NF; exit }')"
+MOUNT="$(printf '%s\n' "${ATTACH_OUT}" | awk -F'\t' '/\/Volumes\// { print $NF; exit }')"
 [[ -n "${MOUNT}" && -d "${MOUNT}" ]] || fail "could not attach writable image"
 
 sleep 1

@@ -8,7 +8,7 @@ struct SeatMenuContent: View {
     private var row: AccountMenuRowModel { seat.menuRow }
 
     var body: some View {
-        AccountMenuDetailHeader(seat: seat, row: row)
+        AccountMenuDetailHeader(row: row)
 
         if let detail = seat.authDetail {
             Text(detail)
@@ -22,6 +22,12 @@ struct SeatMenuContent: View {
         }
 
         Divider()
+
+        if seat.auth == .signedIn || seat.auth == .needsReauth {
+            Button(seat.userLabel == nil ? "Set label…" : "Edit label…") {
+                model.presentLabelEditor(seatID: seat.seatID)
+            }
+        }
 
         Button {
             model.focus(seatID: seat.seatID)

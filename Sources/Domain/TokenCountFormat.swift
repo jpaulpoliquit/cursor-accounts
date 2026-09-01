@@ -32,6 +32,15 @@ public enum TokenCountFormat {
         value.formatted(.number.locale(locale))
     }
 
+    /// Request and account counts. Always grouped. Never raw `37388`.
+    public static func grouped(_ value: Int, locale: Locale = .current) -> String {
+        value.formatted(.number.grouping(.automatic).precision(.fractionLength(0)).locale(locale))
+    }
+
+    public static func grouped(_ value: Int64, locale: Locale = .current) -> String {
+        value.formatted(.number.grouping(.automatic).precision(.fractionLength(0)).locale(locale))
+    }
+
     public static func percentShare(_ share: Double) -> String {
         guard share.isFinite, share >= 0 else { return "0%" }
         if share > 0, share < 0.01 {

@@ -3,7 +3,7 @@ import Foundation
 
 /// Tiny UserDefaults store for email reveal/mask. Defaults to mask.
 struct IdentityDisplayPolicyStore {
-    private let key = "identityDisplayPolicy"
+    private let key = IdentityDisplayPolicy.defaultsKey
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {

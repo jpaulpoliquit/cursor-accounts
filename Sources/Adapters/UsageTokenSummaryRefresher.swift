@@ -207,7 +207,7 @@ public actor UsageTokenSummaryRefresher {
     private func fetchOne(
         credential: SeatCredential,
         range: UsageRange,
-        accountStart: UsageDayKey?,
+        accountStart _: UsageDayKey?,
         timeZone: TimeZone,
         token: UInt64
     ) async -> (SeatID, SeatSummaryOutcome) {
@@ -220,7 +220,7 @@ public actor UsageTokenSummaryRefresher {
                 token: token
             )
         case .allTime(let start, let end):
-            let fetchStart = accountStart ?? start
+            let fetchStart = start
             guard fetchStart <= end else {
                 return (
                     credential.seatID,

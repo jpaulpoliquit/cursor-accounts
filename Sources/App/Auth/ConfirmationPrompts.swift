@@ -79,6 +79,29 @@ enum ConfirmationPrompts {
         return alert.runModal() == .alertFirstButtonReturn
     }
 
+    static func promptAccountLabel(current: String?, identity: String) -> String? {
+        let alert = NSAlert()
+        alert.messageText = "Label for \(identity)"
+        alert.informativeText = "Shown when several accounts share a Cursor name. Leave empty to clear."
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
+        field.stringValue = current ?? ""
+        field.placeholderString = "Work, personal, client…"
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Save")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        return field.stringValue
+    }
+
+    static func alertInvalidLabel(_ reason: String) {
+        let alert = NSAlert()
+        alert.messageText = "Could not save label"
+        alert.informativeText = reason
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
     static func promptFixedOnDemand(
         accountLabel: String,
         policy: UsagePolicy?

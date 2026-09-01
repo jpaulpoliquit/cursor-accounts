@@ -73,6 +73,8 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
     public let identityPolicy: IdentityDisplayPolicy
     /// True when roster email or display name exists (independent of mask).
     public let hasUsableIdentity: Bool
+    /// User nickname. Nil means show Cursor identity.
+    public let userLabel: SeatUserLabel?
 
     public init(
         seatID: SeatID,
@@ -97,7 +99,8 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
         isDesktopBound: Bool = false,
         usageLoadState: SeatUsageLoadState = .unavailable,
         identityPolicy: IdentityDisplayPolicy,
-        hasUsableIdentity: Bool? = nil
+        hasUsableIdentity: Bool? = nil,
+        userLabel: SeatUserLabel? = nil
     ) {
         self.seatID = seatID
         self.label = label
@@ -136,6 +139,7 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
                 self.hasUsableIdentity = false
             }
         }
+        self.userLabel = userLabel
     }
 
     public var authTitle: String {
@@ -155,13 +159,13 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
         case .signingIn:
             return "Signing in…"
         case .signedIn, .needsReauth:
-            return label.text
+            return SeatUserLabelResolver.primary(userLabel: userLabel, identity: label)
         }
     }
 
     /// Compact menu-root account name. Full name stays in Dashboard / accessibility.
     public var menuCompactLabel: String {
-        DisplayNameMenuFit.rootTitle(label.text)
+        DisplayNameMenuFit.rootTitle(SeatUserLabelResolver.primary(userLabel: userLabel, identity: label))
     }
 
     public var rootMenuTitle: String {
@@ -201,7 +205,7 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
 
     public var focusedSummaryLine: String? {
         guard isFocused, auth == .signedIn || auth == .needsReauth else { return nil }
-        var parts = [label.text]
+        var parts = [SeatUserLabelResolver.primary(userLabel: userLabel, identity: label)]
         if let planName {
             parts.append(planName.capitalized)
         }
@@ -218,7 +222,10 @@ public struct SeatPresentation: Sendable, Equatable, Identifiable, Hashable {
             parts.append("Signing in")
             parts.append(label.text)
         case .signedIn, .needsReauth:
-            parts.append(label.text)
+            parts.append(SeatUserLabelResolver.primary(userLabel: userLabel, identity: label))
+            if let userLabel, userLabel.value != label.text {
+                parts.append(label.text)
+            }
             parts.append(authTitle)
         }
         if isDesktopBound {

@@ -9,9 +9,12 @@ enum CursorProfile {
     /// cursor.com profile `--color-theme-accent` (#f54e00).
     static let chartAccent = Color(red: 245.0 / 255.0, green: 78.0 / 255.0, blue: 0)
 
-    static let pagePadding: CGFloat = 32
-    static let sectionSpacing: CGFloat = 28
+    static let clusterSpacing: CGFloat = 4
+    static let itemSpacing: CGFloat = 12
     static let cardPadding: CGFloat = 16
+    static let contentPadding: CGFloat = 24
+    static let sectionSpacing: CGFloat = 28
+    static let pagePadding: CGFloat = 32
     static let radius: CGFloat = 8
     static let avatarSize: CGFloat = 40
     static let columnMaxWidth: CGFloat = 720
@@ -153,7 +156,7 @@ struct CursorProfileStat: View {
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: CursorProfile.clusterSpacing) {
             Text(label)
                 .font(CursorProfile.Font.statLabel)
                 .foregroundStyle(.secondary)

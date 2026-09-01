@@ -24,8 +24,8 @@ extension UsageSeriesCoordinator {
                 selectedRange = self.interactiveAllTimeRange(window: window)
                 self.range = selectedRange
             } else if case .allTime = selectedRange {
-                selectedRange = selectedRange.clippedToRecentMonths(
-                    HistoryWarmBudget.default.maxMonths,
+                selectedRange = selectedRange.coveringRecentMonths(
+                    HistoryWarmBudget.seriesAllTime.maxMonths,
                     timeZone: self.timeZone
                 )
                 self.range = selectedRange
@@ -294,8 +294,8 @@ extension UsageSeriesCoordinator {
     }
 
     func interactiveAllTimeRange(window: (start: UsageDayKey, end: UsageDayKey)) -> UsageRange {
-        UsageRange.allTime(start: window.start, end: window.end)
-            .clippedToRecentMonths(HistoryWarmBudget.default.maxMonths, timeZone: timeZone)
+        UsageRange.allTime(start: window.end, end: window.end)
+            .coveringRecentMonths(HistoryWarmBudget.seriesAllTime.maxMonths, timeZone: timeZone)
     }
 
     func ensureAllTimeBoundsCurrent() async {

@@ -49,7 +49,7 @@ final class ActivityInspectionTooltipTests: XCTestCase {
         )
         let lines = inspection.tooltipLines(timeZone: tz)
         XCTAssertEqual(lines[0], "August 2026")
-        XCTAssertTrue(lines.contains(where: { $0.contains("28616 requests") }))
+        XCTAssertTrue(lines.contains(where: { $0.contains("\(TokenCountFormat.grouped(28_616)) requests") }))
         XCTAssertFalse(lines.contains(where: { $0.contains("First ") }))
         XCTAssertFalse(lines.contains(where: { $0.contains("Daily span") }))
         XCTAssertTrue(lines.contains(where: { $0.contains("Est. active") }))

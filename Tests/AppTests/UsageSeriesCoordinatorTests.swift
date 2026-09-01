@@ -500,10 +500,18 @@ final class UsageSeriesCoordinatorTests: XCTestCase {
                     }
                     return try usageCoordOK(request, usageCoordAggregateJSON(input: 500))
                 }
-                if method == "GetDailySpendByCategory" {
-                    return try usageCoordOK(request, usageCoordDailyJSON(dayMs: augustDay.utcMidnightMs, tokens: 1_000))
+                if usageCoordWindowContains(request, day: augustDay),
+                   !usageCoordWindowContains(request, day: julyDay)
+                {
+                    if method == "GetDailySpendByCategory" {
+                        return try usageCoordOK(request, usageCoordDailyJSON(dayMs: augustDay.utcMidnightMs, tokens: 1_000))
+                    }
+                    return try usageCoordOK(request, usageCoordAggregateJSON(input: 1_000))
                 }
-                return try usageCoordOK(request, usageCoordAggregateJSON(input: 1_000))
+                if method == "GetDailySpendByCategory" {
+                    return try usageCoordOK(request, "{}")
+                }
+                return try usageCoordOK(request, usageCoordAggregateJSON(input: 0))
             }
             return try usageCoordOK(request, #"{"totalUsageEventsCount":0,"usageEventsDisplay":[],"usageEvents":[]}"#)
         }
@@ -521,6 +529,7 @@ final class UsageSeriesCoordinatorTests: XCTestCase {
                 )
             }
         )
+        coordinator.range = .month(YearMonth(year: 2026, month: 8))
         coordinator.selectScope(.account(.seat1))
         await usageCoordWait(coordinator) {
             $0.phase == .settled && $0.tokenSummary?.totals.total == 1_000

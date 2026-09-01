@@ -12,13 +12,13 @@ Requires macOS 14 or later.
 
 ### Disk image (for other people)
 
-1. Open `Cursor-Accounts-0.1.0.dmg`.
+1. Open `Cursor-Accounts-0.2.0.dmg`.
 2. Drag **Cursor Accounts** onto **Applications**.
 3. Open Cursor Accounts from Applications. It is a menu-bar agent (`LSUIElement`); look for the yellow mark with the active account and usage.
 
 ```bash
 ./Scripts/package-dmg.sh
-# writes dist/Cursor-Accounts-0.1.0.dmg  (gitignored — do not commit the binary)
+# writes dist/Cursor-Accounts-0.2.0.dmg  (gitignored — do not commit the binary)
 ```
 
 The image contains Cursor Accounts, an Applications shortcut, and a short Read Me.
@@ -35,7 +35,13 @@ brew install xcodegen                # once
 INSTALL_DIR="$HOME/Applications" ./Scripts/install.sh
 ```
 
-After a successful run, `/Applications/Cursor Accounts.app` exists. The script does not leave you in DerivedData.
+After a successful run, `/Applications/Cursor Accounts.app` exists and `cursor-accounts` is on your `PATH` (`/opt/homebrew/bin`, `/usr/local/bin`, or `~/.local/bin`). The script does not leave you in DerivedData.
+
+```bash
+cursor-accounts list
+cursor-accounts usage
+cursor-accounts --help
+```
 
 ## Build from source
 
@@ -56,12 +62,12 @@ Verification harness (prints exact commands; writes redacted logs under `.verify
 
 `live-write` is not implemented (needs dual env gates + exact revert). Smoke never relaunches Cursor IDE.
 
-The Xcode scheme stays `CursorBar`. The built product is `Cursor Accounts.app`. Swift modules stay `CursorBar*`.
+The Xcode scheme is **Cursor Accounts**. The built product is `Cursor Accounts.app`. Swift modules stay `CursorBar*`.
 
 ```bash
 export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer   # if needed
-xcodebuild -scheme CursorBar -destination 'platform=macOS' build
-xcodebuild -scheme CursorBar -destination 'platform=macOS' test
+xcodebuild -scheme "Cursor Accounts" -destination 'platform=macOS' build
+xcodebuild -scheme "Cursor Accounts" -destination 'platform=macOS' test
 ```
 
 **Switch account…** is an explicit menu action with confirmation. Cursor Accounts uses one shared Cursor IDE profile (`~/Library/Application Support/Cursor`). Switching quits Cursor, replaces only scoped `cursorAuth/*` session rows in `state.vscdb`, relaunches the shared profile (no seat-specific `--user-data-dir`), and marks Active only after the DB JWT subject matches the target seat. Settings, extensions, history, and MCP config stay in the shared profile. Focus, sign-in, refresh, and on-demand never restart the IDE.

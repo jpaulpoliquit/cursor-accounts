@@ -33,6 +33,12 @@ extension AppModel {
             usageRefreshPhase: usageRefresh.phase,
             setHardLimitPhase: setHardLimitPhase,
             ideSwitchPhase: ideSwitch.phase,
+            desktopBoundSeatID: ideSwitch.desktopBoundSeatID,
+            userLabels: currentUserLabels()
+        )
+        publicRosterStore.write(
+            aggregate: aggregate,
+            userLabels: currentUserLabels(),
             desktopBoundSeatID: ideSwitch.desktopBoundSeatID
         )
     }

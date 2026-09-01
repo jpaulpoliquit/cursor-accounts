@@ -26,7 +26,9 @@ struct UsageInsightsChartsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: CursorProfile.sectionSpacing) {
             whenYouWork
-            dailyActivity
+            if showsPeriodChart {
+                dailyActivity
+            }
         }
         .onChange(of: insights) { _, _ in
             rebuildInspectionIndex(clearSelection: true)
@@ -51,8 +53,14 @@ struct UsageInsightsChartsView: View {
         TimeZone(identifier: insights.timeZoneIdentifier) ?? .current
     }
 
+    /// All Time already has the year heatmap. Monthly bars only reflect fetched events (May–Sep).
+    private var showsPeriodChart: Bool {
+        if case .allTime = insights.range { return false }
+        return true
+    }
+
     private var whenYouWork: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: CursorProfile.itemSpacing) {
             Text("When you work")
                 .font(CursorProfile.Font.section)
             if insights.hourOfDayCounts.allSatisfy({ $0 == 0 }) {
@@ -63,16 +71,18 @@ struct UsageInsightsChartsView: View {
                 Chart(Array(insights.hourOfDayCounts.enumerated()), id: \.offset) { item in
                     BarMark(
                         x: .value("Hour", item.offset),
-                        y: .value("Requests", item.element)
+                        y: .value("Requests", item.element),
+                        width: .ratio(0.68)
                     )
                     .foregroundStyle(CursorProfile.chartAccent)
+                    .cornerRadius(2)
                     if let hour = selectedHourInspection {
                         RuleMark(x: .value("Selected", hour.hour))
                             .foregroundStyle(Color.secondary.opacity(0.55))
                             .lineStyle(StrokeStyle(lineWidth: 1))
                     }
                 }
-                .chartXScale(domain: 0...23)
+                .chartXScale(domain: -0.5...23.5)
                 .chartYScale(domain: 0...max(1, insights.hourOfDayCounts.max() ?? 0))
                 .chartXSelection(value: $selectedHour)
                 .onContinuousHover { phase in
@@ -81,7 +91,7 @@ struct UsageInsightsChartsView: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks(values: [0, 6, 12, 18, 23]) { value in
+                    AxisMarks(values: [0, 6, 12, 18]) { value in
                         AxisValueLabel {
                             if let hour = value.as(Int.self) {
                                 Text(ActivityInsights.clockLabel(hour))
@@ -91,7 +101,10 @@ struct UsageInsightsChartsView: View {
                     }
                 }
                 .chartYAxis(.hidden)
-                .frame(height: 88)
+                .chartPlotStyle { plot in
+                    plot.padding(.bottom, 2)
+                }
+                .frame(height: 128)
                 .chartOverlay { proxy in
                     GeometryReader { geo in
                         hourTooltip(proxy: proxy, geo: geo)
@@ -101,17 +114,13 @@ struct UsageInsightsChartsView: View {
                 .accessibilityLabel(insights.peakHourRangeAccessibility)
                 .background(alignment: .topLeading) { hourAccessibilityList }
             }
-
-            Text(insights.peakHourRangeAccessibility)
-                .font(CursorProfile.Font.meta)
-                .foregroundStyle(.secondary)
         }
     }
 
     private var dailyActivity: some View {
         let points = ActivityChartAggregation.points(from: insights)
         let usesMonths = inspectionIndex.usesMonthBuckets
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: CursorProfile.itemSpacing) {
             Text(usesMonths ? "Activity by month" : "Daily activity")
                 .font(CursorProfile.Font.section)
             if points.isEmpty {
@@ -145,7 +154,11 @@ struct UsageInsightsChartsView: View {
                     }
                 }
                 .chartYAxis(.hidden)
+                .chartPlotStyle { plot in
+                    plot.padding(.horizontal, 12)
+                }
                 .frame(height: 100)
+                .padding(.trailing, 4)
                 .chartOverlay { proxy in
                     GeometryReader { geo in
                         periodTooltip(proxy: proxy, geo: geo)

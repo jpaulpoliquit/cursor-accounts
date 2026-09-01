@@ -6,7 +6,7 @@ struct DashboardAccountsPane: View {
     var surface: DashboardSeatSurface
     @Environment(\.colorScheme) private var colorScheme
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: CursorProfile.cardPadding) {
             if showsConnectStatus {
                 DashboardConnectAccountRow(
                     addAccount: model.presentation.addAccount,
@@ -24,7 +24,7 @@ struct DashboardAccountsPane: View {
     }
 
     private var tableChrome: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: CursorProfile.itemSpacing) {
             if model.accountLayout == .table {
                 usageMetricPicker
                     .fixedSize(horizontal: true, vertical: false)

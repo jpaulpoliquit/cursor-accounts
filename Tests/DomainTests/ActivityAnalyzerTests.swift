@@ -75,12 +75,24 @@ final class ActivityAnalyzerTests: XCTestCase {
             requestedSeatCount: 2
         )
         XCTAssertTrue(insights.estimatedActiveIsPerSeatSum)
+        XCTAssertEqual(insights.spanLabel, "Combined span")
+        XCTAssertTrue(insights.spanHelp.contains("exceed 24 hours"))
+        XCTAssertEqual(insights.agentTimeLabel, "Agent time")
+        XCTAssertTrue(insights.agentTimeHelp.contains("Summed per account"))
         XCTAssertEqual(insights.totalRequests, 4)
         XCTAssertEqual(insights.activeDayCount, 1)
         let day = insights.days[0]
-        // Each seat span 20m; summed span 40m. Merged-timeline would be 25m.
+        // Each seat span 20m; summed span 40m. Calendar first-to-last is 25m.
         XCTAssertEqual(day.spanMs, 40 * 60_000)
+        XCTAssertEqual(day.calendarSpanMs, 25 * 60_000)
         XCTAssertEqual(day.estimatedActiveMs, 40 * 60_000)
+        XCTAssertEqual(
+            insights.trailingSpanMs(
+                now: Date(timeIntervalSince1970: TimeInterval(dayStart) / 1000.0 + 86400),
+                timeZone: taipei
+            ),
+            25 * 60_000
+        )
     }
 
     func testMonthOverMonthProseSuppressedForPartialCurrentMonth() throws {
@@ -99,6 +111,8 @@ final class ActivityAnalyzerTests: XCTestCase {
         let mom = try XCTUnwrap(insights.monthOverMonth)
         XCTAssertTrue(mom.currentIsPartial)
         XCTAssertTrue(mom.currentLabel.contains("so far"))
+        XCTAssertTrue(mom.versusLabel.hasPrefix("vs "))
+        XCTAssertFalse(mom.versusLabel.contains("so far"))
         XCTAssertFalse(mom.allowsProse)
         XCTAssertTrue(mom.proseLines.isEmpty)
     }
@@ -136,6 +150,8 @@ final class ActivityAnalyzerTests: XCTestCase {
             now: date(2026, 8, 31, 12, 0),
             requestedSeatCount: 1
         )
+        XCTAssertFalse(insights.estimatedActiveIsPerSeatSum)
+        XCTAssertEqual(insights.spanLabel, "Daily span")
         let text = insights.accessibilityDescriptor.lowercased()
         XCTAssertFalse(text.contains("agent hours"))
         XCTAssertTrue(text.contains("estimated agent-active"))
@@ -235,10 +251,12 @@ final class ActivityAnalyzerTests: XCTestCase {
             missingTokenUsageCount: 0
         )
         let caption = try XCTUnwrap(coverage.caption)
-        XCTAssertTrue(caption.contains("Showing 500 of 2000 requests"))
+        XCTAssertTrue(caption.contains("\(TokenCountFormat.grouped(500)) of \(TokenCountFormat.grouped(2000)) requests"))
         XCTAssertTrue(caption.contains("Month so far"))
         XCTAssertTrue(caption.contains("1 of 2"))
-        XCTAssertTrue(caption.contains("1 failed"))
+        XCTAssertTrue(caption.contains("1 account unavailable"))
+        XCTAssertFalse(caption.contains("try Refresh"))
+        XCTAssertFalse(caption.contains("history still loading"))
     }
 
     func testCoverageCaptionDistinguishesFailedSeats() throws {
@@ -252,7 +270,55 @@ final class ActivityAnalyzerTests: XCTestCase {
             missingTokenUsageCount: 0
         )
         let caption = try XCTUnwrap(coverage.caption)
-        XCTAssertEqual(caption, "4 of 5 accounts loaded · 1 failed — try Refresh")
+        XCTAssertEqual(caption, "4 of 5 accounts · 1 account unavailable")
+    }
+
+    func testTrailingThirtyDaysSumsOnlyRecentAgentTime() {
+        let old = DayActivity(
+            day: ActivityDayKey(year: 2026, month: 6, day: 1),
+            requestCount: 2,
+            tokens: 10,
+            spanMs: 3_600_000,
+            estimatedActiveMs: 3_600_000
+        )
+        let recent = DayActivity(
+            day: ActivityDayKey(year: 2026, month: 8, day: 20),
+            requestCount: 4,
+            tokens: 20,
+            spanMs: 2 * 3_600_000,
+            estimatedActiveMs: 90 * 60_000
+        )
+        let insights = ActivityAnalyzer.analyze(
+            seats: [.init(seatID: .seat1, requests: [], truncated: false, reportedTotal: 0)],
+            scope: .account(.seat1),
+            range: .month(YearMonth(year: 2026, month: 8)),
+            timeZone: taipei,
+            now: date(2026, 8, 31, 12, 0),
+            requestedSeatCount: 1
+        )
+        let withDays = ActivityInsights(
+            scope: insights.scope,
+            range: insights.range,
+            timeZoneIdentifier: insights.timeZoneIdentifier,
+            idleGap: insights.idleGap,
+            hourOfDayCounts: insights.hourOfDayCounts,
+            hourOfDayTokens: insights.hourOfDayTokens,
+            dayOfWeekCounts: insights.dayOfWeekCounts,
+            days: [old, recent],
+            totalRequests: 6,
+            totalTokens: 30,
+            activeDayCount: 2,
+            medianDailySpanMs: insights.medianDailySpanMs,
+            medianEstimatedActiveMs: insights.medianEstimatedActiveMs,
+            coverage: insights.coverage,
+            monthOverMonth: nil,
+            estimatedActiveIsPerSeatSum: false
+        )
+        let now = date(2026, 8, 31, 12, 0)
+        XCTAssertEqual(withDays.trailingDays(dayCount: 30, now: now, timeZone: taipei).map(\.day), [recent.day])
+        XCTAssertEqual(withDays.totalAgentTimeMs, 3_600_000 + (90 * 60_000))
+        XCTAssertEqual(withDays.trailingAgentTimeMs(now: now, timeZone: taipei), 90 * 60_000)
+        XCTAssertEqual(withDays.trailingSpanMs(now: now, timeZone: taipei), 2 * 3_600_000)
     }
 
     // MARK: - Fixtures

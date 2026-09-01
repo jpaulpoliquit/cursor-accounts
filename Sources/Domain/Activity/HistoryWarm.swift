@@ -22,6 +22,10 @@ public struct HistoryWarmBudget: Sendable, Equatable {
     /// Background warm and interactive All Time series/token month cap.
     public static let `default` = HistoryWarmBudget()
 
+    /// Daily chart, heatmap, and token totals. Looks back from today even if
+    /// `GetMe.createdAt` is newer, so older usage still paints.
+    public static let seriesAllTime = HistoryWarmBudget(maxMonths: 24, maxEvents: 30_000)
+
     /// All Time Insights click. Recent months only. Does not page every month since createdAt.
     public static let interactiveAllTime = HistoryWarmBudget(maxMonths: 6, maxEvents: 8_000)
 }

@@ -43,6 +43,8 @@ final class AppModel {
     let usageSeries: UsageSeriesCoordinator
     @ObservationIgnored let openRefreshScheduler = OpenRefreshScheduler()
     @ObservationIgnored let cardSnapshotStore: UsageCardSnapshotStore
+    @ObservationIgnored let userLabelStore: SeatUserLabelStore
+    @ObservationIgnored let publicRosterStore: PublicRosterStore
     @ObservationIgnored var dashboardVisible = false
     var dashboardTab: DashboardTab = .accounts
     var accountLayout: DashboardAccountLayout = .table
@@ -55,6 +57,7 @@ final class AppModel {
     var accountFilter = ""
     var modelGroup: DashboardModelGroup = .family
     var onDemandEditorSeatID: SeatID?
+    var labelEditorSeatID: SeatID?
     let updates = AppUpdateController()
     #if DEBUG
     var dashboardLayoutPrototype: DashboardLayoutPrototype = .profileColumn
@@ -76,6 +79,8 @@ final class AppModel {
         confirmationGate: ConfirmationGate? = nil,
         cardSnapshotStore: UsageCardSnapshotStore = UsageCardSnapshotStore(),
         chartSnapshotStore: UsageChartSnapshotStore = UsageChartSnapshotStore(),
+        userLabelStore: SeatUserLabelStore = SeatUserLabelStore(),
+        publicRosterStore: PublicRosterStore = PublicRosterStore(),
         autostart: Bool = true
     ) {
         // Never SecItemCopyMatching on the main-thread init path; Keychain can block on ACL UI.
@@ -93,6 +98,8 @@ final class AppModel {
         self.menuBarUsageStore = menuBarUsageStore
         self.focusStore = focusStore
         self.cardSnapshotStore = cardSnapshotStore
+        self.userLabelStore = userLabelStore
+        self.publicRosterStore = publicRosterStore
         self.usageBySeat = cardSnapshotStore.load()
         self.identityPolicy = policyStore.load()
         self.menuBarUsage = menuBarUsageStore.load()
@@ -134,7 +141,8 @@ final class AppModel {
             usageRefreshPhase: .idle,
             setHardLimitPhase: .idle,
             ideSwitchPhase: ideSwitch.phase,
-            desktopBoundSeatID: ideSwitch.desktopBoundSeatID
+            desktopBoundSeatID: ideSwitch.desktopBoundSeatID,
+            userLabels: userLabelStore.labelsBySeat()
         )
 
         usageRefresh.configure(
@@ -189,7 +197,7 @@ final class AppModel {
                 self?.presentation.seats.first(where: { $0.seatID == seatID })?.policy
             },
             accountLabel: { [weak self] seatID in
-                self?.presentation.seats.first(where: { $0.seatID == seatID })?.label.text
+                self?.presentation.seats.first(where: { $0.seatID == seatID })?.dashboardTitle
                     ?? "this account"
             },
             performSignOut: { [weak self] seatID in

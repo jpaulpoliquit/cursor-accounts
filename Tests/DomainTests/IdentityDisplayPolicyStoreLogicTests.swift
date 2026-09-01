@@ -7,6 +7,7 @@ final class IdentityDisplayPolicyStoreLogicTests: XCTestCase {
         XCTAssertEqual(IdentityDisplayPolicy.maskEmail.rawValue, "maskEmail")
         XCTAssertEqual(IdentityDisplayPolicy.revealEmail.rawValue, "revealEmail")
         XCTAssertEqual(IdentityDisplayPolicy(rawValue: "maskEmail"), .maskEmail)
+        XCTAssertEqual(IdentityDisplayPolicy.defaultsKey, "identityDisplayPolicy")
     }
 
     func testMenuBarUsageRawValuesAreStableForUserDefaults() {

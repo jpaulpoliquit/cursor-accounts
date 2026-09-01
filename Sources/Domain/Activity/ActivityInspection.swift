@@ -13,13 +13,13 @@ public struct ActivityHourInspection: Sendable, Equatable, Hashable {
     }
 
     public var accessibilityLabel: String {
-        "\(ActivityInsights.clockLabel(hour)), \(requestCount) requests, \(TokenCountFormat.accessibility(tokens)) tokens"
+        "\(ActivityInsights.clockLabel(hour)), \(TokenCountFormat.grouped(requestCount)) requests, \(TokenCountFormat.accessibility(tokens)) tokens"
     }
 
     public var tooltipLines: [String] {
         [
             ActivityInsights.clockLabel(hour),
-            "\(requestCount) requests",
+            "\(TokenCountFormat.grouped(requestCount)) requests",
             "\(TokenCountFormat.compact(tokens)) tokens",
         ]
     }
@@ -65,7 +65,7 @@ public struct ActivityPeriodInspection: Sendable, Equatable, Hashable {
     public func accessibilityLabel(timeZone: TimeZone) -> String {
         var parts = [
             accessibilityDate,
-            "\(requestCount) requests",
+            "\(TokenCountFormat.grouped(requestCount)) requests",
             "\(TokenCountFormat.accessibility(tokens)) tokens",
             "estimated agent-active \(ActivityInsights.durationAccessibility(estimatedActiveMs))",
         ]
@@ -80,7 +80,7 @@ public struct ActivityPeriodInspection: Sendable, Equatable, Hashable {
     public func tooltipLines(timeZone: TimeZone, idleGap _: IdleGapPolicy = .thirtyMinutes) -> [String] {
         var lines = [
             accessibilityDate,
-            "\(requestCount) requests · \(TokenCountFormat.compact(tokens)) tokens",
+            "\(TokenCountFormat.grouped(requestCount)) requests · \(TokenCountFormat.compact(tokens)) tokens",
         ]
         if isMonthBucket {
             if estimatedActiveMs > 0 {

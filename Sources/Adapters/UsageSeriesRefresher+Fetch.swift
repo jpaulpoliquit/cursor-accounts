@@ -73,14 +73,14 @@ extension UsageSeriesRefresher {
             )
             return (result.outcome, result.chunkCount, 0)
         case .allTime(_, let end):
-            let fetchStart = accountStart ?? chartStart
+            let fetchStart = chartStart
             guard fetchStart <= end else {
                 let empty = UsageSeriesAggregator.seatSeries(
                     seatID: credential.seatID,
                     rows: [],
                     rangeStart: chartStart,
                     rangeEnd: chartEnd,
-                    accountStart: accountStart
+                    accountStart: nil
                 )
                 return ((credential.seatID, .refreshed(empty)), 0, 0)
             }
@@ -91,7 +91,7 @@ extension UsageSeriesRefresher {
                 end: end,
                 chartStart: chartStart,
                 chartEnd: chartEnd,
-                accountStart: accountStart,
+                accountStart: nil,
                 timeZone: timeZone,
                 client: client,
                 gate: chunkGate,

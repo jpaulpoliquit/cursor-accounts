@@ -26,7 +26,7 @@ final class UsageRangeTests: XCTestCase {
 
     func testNextDisabledOnCurrentMonth() {
         let tz = TimeZone(identifier: "Asia/Taipei")!
-        let now = Date(timeIntervalSince1970: 1_786_320_000)
+        let now = Date()
         let current = UsageRange.defaultMonth(now: now, timeZone: tz)
         XCTAssertFalse(current.canGoNext)
         XCTAssertNil(current.next(now: now, timeZone: tz))
@@ -97,5 +97,23 @@ final class UsageRangeTests: XCTestCase {
         XCTAssertEqual(start, UsageDayKey(year: 2025, month: 9, day: 1))
         XCTAssertEqual(end, UsageDayKey(year: 2026, month: 8, day: 15))
         XCTAssertEqual(UsageRange.month(YearMonth(year: 2026, month: 8)).clippedToRecentMonths(12, timeZone: tz), .month(YearMonth(year: 2026, month: 8)))
+    }
+
+    func testCoveringRecentMonthsLooksBackFromEndEvenWhenCreatedAtIsNewer() {
+        let tz = TimeZone(secondsFromGMT: 0)!
+        let range = UsageRange.allTime(
+            start: UsageDayKey(year: 2025, month: 10, day: 30),
+            end: UsageDayKey(year: 2026, month: 9, day: 1)
+        )
+        let covered = range.coveringRecentMonths(24, timeZone: tz)
+        guard case .allTime(let start, let end) = covered else {
+            return XCTFail("expected allTime")
+        }
+        XCTAssertEqual(start, UsageDayKey(year: 2024, month: 10, day: 1))
+        XCTAssertEqual(end, UsageDayKey(year: 2026, month: 9, day: 1))
+        XCTAssertEqual(
+            UsageRange.month(YearMonth(year: 2026, month: 8)).coveringRecentMonths(24, timeZone: tz),
+            .month(YearMonth(year: 2026, month: 8))
+        )
     }
 }

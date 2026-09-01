@@ -12,7 +12,8 @@ public enum SeatPresentationProjector {
         usageRefreshPhase: UsageRefreshPhase,
         setHardLimitPhase: SetHardLimitPhase,
         ideSwitchPhase: IDESwitchPhase = .idle,
-        desktopBoundSeatID: SeatID? = nil
+        desktopBoundSeatID: SeatID? = nil,
+        userLabels: [SeatID: SeatUserLabel] = [:]
     ) -> AppPresentation {
         var rosterIDs = aggregate.seats.map(\.seatID)
         for seatID in loginPhases.keys where !rosterIDs.contains(seatID) {
@@ -49,7 +50,8 @@ public enum SeatPresentationProjector {
                 loginPhase: loginPhases[seatID] ?? .idle,
                 isDesktopBound: desktopBoundSeatID == seatID,
                 label: labelBySeat[seatID] ?? .cursorAccount(disambiguator: nil),
-                usageRefreshPhase: usageRefreshPhase
+                usageRefreshPhase: usageRefreshPhase,
+                userLabel: userLabels[seatID]
             )
         }
         let connectedAccounts = seats.filter(AddAccountPresentation.isConnectedAccount)
@@ -81,7 +83,8 @@ public enum SeatPresentationProjector {
         loginPhase: SeatLoginPhase,
         isDesktopBound: Bool,
         label: AccountLabel,
-        usageRefreshPhase: UsageRefreshPhase
+        usageRefreshPhase: UsageRefreshPhase,
+        userLabel: SeatUserLabel?
     ) -> SeatPresentation {
         let source = AccountLabelResolver.Source(
             seatID: seat.seatID,
@@ -150,7 +153,8 @@ public enum SeatPresentationProjector {
                 seatID: seat.seatID
             ),
             identityPolicy: identityPolicy,
-            hasUsableIdentity: seat.email != nil || seat.displayName != nil
+            hasUsableIdentity: seat.email != nil || seat.displayName != nil,
+            userLabel: userLabel
         )
     }
 

@@ -83,6 +83,41 @@ final class UsageTokenSummaryTests: XCTestCase {
         XCTAssertFalse(summary.coverage.isPartial)
     }
 
+    func testRanksLinesNotVariantLeaves() {
+        let models = [
+            row("cursor-grok-4.5-high-fast", 60),
+            row("cursor-grok-4.5-high", 40),
+            row("cursor-grok-4.6-xhigh-fast", 50),
+            row("composer-2", 45),
+            row("composer-2.5-fast", 42),
+            row("gpt-5.6-sol-medium", 29),
+            row("mystery-slug", 10),
+        ]
+        let lines = UsageTokenSummaryAggregator.rankedTopLines(from: models, summaryTotal: 276)
+        XCTAssertEqual(lines.map(\.title), [
+            "Cursor Grok 4.5",
+            "Cursor Grok 4.6",
+            "Composer 2",
+            "Composer 2.5",
+            "GPT 5.6",
+        ])
+        XCTAssertEqual(lines[0].tokens, 100)
+        XCTAssertEqual(lines[0].share, 100.0 / 276.0, accuracy: 0.0001)
+        XCTAssertEqual(lines[0].variants.map(\.model.modelIntent), [
+            "cursor-grok-4.5-high-fast",
+            "cursor-grok-4.5-high",
+        ])
+        let leaves = UsageTokenSummaryAggregator.rankedTopModels(from: models, summaryTotal: 276)
+        XCTAssertEqual(leaves.map(\.model.modelIntent), [
+            "cursor-grok-4.5-high-fast",
+            "cursor-grok-4.5-high",
+            "cursor-grok-4.6-xhigh-fast",
+            "composer-2",
+            "composer-2.5-fast",
+            "gpt-5.6-sol-medium",
+        ])
+    }
+
     func testPartialCoverageWhenOneSeatFails() {
         let seat1 = SeatUsageTokenSummary(
             seatID: .seat1,

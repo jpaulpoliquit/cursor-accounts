@@ -54,6 +54,11 @@ final class ProductNameSourceTests: XCTestCase {
         XCTAssertTrue(project.contains("INFOPLIST_KEY_CFBundleDisplayName: Cursor Accounts"))
         XCTAssertTrue(project.contains("INFOPLIST_KEY_CFBundleName: Cursor Accounts"))
         XCTAssertTrue(project.contains("PRODUCT_BUNDLE_IDENTIFIER: app.cursorbar"))
+        XCTAssertTrue(project.contains("  Cursor Accounts:"))
+
+        let install = try source("Scripts/install.sh")
+        XCTAssertTrue(install.contains("SCHEME=\"Cursor Accounts\""))
+        XCTAssertFalse(install.contains("SCHEME=\"CursorBar\""))
     }
 
     private func source(_ relative: String) throws -> String {

@@ -3,8 +3,8 @@ import Foundation
 /// Selected chart timeline. Domain owns labels and UTC request arithmetic; views do not.
 public enum UsageRange: Sendable, Equatable, Hashable, Codable {
     case month(YearMonth)
-    /// Honest bound from account onboarding (`GetMe.createdAt`) through today UTC.
-    /// Not claimed as earliest usage event.
+    /// Inclusive UTC day window through today. Start is the fetch/display floor
+    /// (recent-month budget). `GetMe.createdAt` is account age, not first usage.
     case allTime(start: UsageDayKey, end: UsageDayKey)
 
     public static func defaultMonth(now: Date = Date(), timeZone: TimeZone = .current) -> UsageRange {
@@ -105,6 +105,27 @@ public enum UsageRange: Sendable, Equatable, Hashable, Codable {
         let clippedStart = start > firstStart ? start : firstStart
         let clippedEnd = end < lastEnd ? end : lastEnd
         return .allTime(start: clippedStart, end: clippedEnd)
+    }
+
+    /// Last `limit` months through the All Time end, even when `createdAt` is newer.
+    public func coveringRecentMonths(_ limit: Int, timeZone: TimeZone) -> UsageRange {
+        guard case .allTime(_, let end) = self else { return self }
+        precondition(limit > 0)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let endDate = Date(timeIntervalSince1970: TimeInterval(end.utcMidnightMs) / 1000.0)
+        guard let endMonthStart = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: endDate)
+        ),
+            let startMonthDate = calendar.date(byAdding: .month, value: -(limit - 1), to: endMonthStart)
+        else {
+            return self
+        }
+        let parts = calendar.dateComponents([.year, .month], from: startMonthDate)
+        let startMonth = YearMonth(year: parts.year!, month: parts.month!)
+        let firstStart = startMonth.overlappingUTCDays(timeZone: timeZone).start
+        let start = min(firstStart, end)
+        return .allTime(start: start, end: end)
     }
 }
 

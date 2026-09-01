@@ -223,6 +223,13 @@ final class UsageSeriesCoordinator {
         insights?.accessibilityDescriptor ?? "Work insights, no data"
     }
 
+    var heatmapTimeZone: TimeZone {
+        if let identifier = insights?.timeZoneIdentifier, let zone = TimeZone(identifier: identifier) {
+            return zone
+        }
+        return timeZone
+    }
+
     /// Privacy-safe seat labels for All Accounts Insights hover contributions.
     var insightsAccountLabels: [SeatID: String] {
         var labels: [SeatID: String] = [:]

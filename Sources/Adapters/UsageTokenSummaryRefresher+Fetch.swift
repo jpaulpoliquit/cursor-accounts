@@ -13,7 +13,7 @@ extension UsageTokenSummaryRefresher {
             from: start,
             through: end,
             timeZone: timeZone,
-            limit: HistoryWarmBudget.default.maxMonths
+            limit: HistoryWarmBudget.seriesAllTime.maxMonths
         )
         let current = YearMonth.current(timeZone: timeZone)
         let client = self.client

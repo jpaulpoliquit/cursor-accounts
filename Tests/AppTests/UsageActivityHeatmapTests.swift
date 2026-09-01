@@ -56,6 +56,21 @@ final class UsageActivityHeatmapTests: XCTestCase {
         XCTAssertLessThanOrEqual(grid.count, 6)
     }
 
+    func testTokenOnlySeriesDayLightsCell() {
+        let range = UsageRange.month(YearMonth(year: 2025, month: 12))
+        let day = DayActivity(
+            day: ActivityDayKey(year: 2025, month: 12, day: 1),
+            requestCount: 0,
+            tokens: 40_000_000_000,
+            spanMs: 0,
+            estimatedActiveMs: 0
+        )
+        let grid = UsageActivityHeatmapView.buildGrid(days: [day], range: range, timeZone: tz, now: now)
+        let cell = grid.flatMap(\.cells).first { $0.id == "2025-12-01" }
+        XCTAssertEqual(cell?.tokens, 40_000_000_000)
+        XCTAssertEqual(cell?.requests, 0)
+    }
+
     func testActiveDayKeepsItsRequestCount() {
         let range = UsageRange.month(YearMonth(year: 2026, month: 2))
         let day = DayActivity(
@@ -72,25 +87,11 @@ final class UsageActivityHeatmapTests: XCTestCase {
         XCTAssertNil(grid.flatMap(\.cells).first { $0.id == "2026-01-15" })
     }
 
-    func testAllTimeIgnoresLeadingDaysWithoutRequests() {
-        let empty = DayActivity(
-            day: ActivityDayKey(year: 2026, month: 2, day: 1),
-            requestCount: 0,
-            tokens: 0,
-            spanMs: 0,
-            estimatedActiveMs: 0
-        )
+    func testAllTimeUsesSelectedWindowNotJustFetchedDays() {
         let first = DayActivity(
-            day: ActivityDayKey(year: 2026, month: 5, day: 10),
+            day: ActivityDayKey(year: 2026, month: 8, day: 10),
             requestCount: 3,
             tokens: 9,
-            spanMs: 0,
-            estimatedActiveMs: 0
-        )
-        let last = DayActivity(
-            day: ActivityDayKey(year: 2026, month: 8, day: 14),
-            requestCount: 2,
-            tokens: 4,
             spanMs: 0,
             estimatedActiveMs: 0
         )
@@ -99,23 +100,26 @@ final class UsageActivityHeatmapTests: XCTestCase {
             end: UsageDayKey(year: 2026, month: 8, day: 14)
         )
         let bounds = UsageActivityHeatmapView.dayBounds(
-            days: [empty, first, last],
+            days: [first],
             range: range,
             timeZone: tz,
             now: now
         )
-        XCTAssertEqual(bounds?.start, first.day)
-        XCTAssertEqual(bounds?.end, last.day)
+        XCTAssertEqual(bounds?.start.month, 2)
+        XCTAssertEqual(bounds?.end.month, 8)
         let grid = UsageActivityHeatmapView.buildGrid(
-            days: [empty, first, last],
+            days: [first],
             range: range,
             timeZone: tz,
             now: now
         )
         let ids = Set(grid.flatMap(\.cells).map(\.id))
-        XCTAssertTrue(ids.contains("2026-05-10"))
+        XCTAssertGreaterThan(grid.count, 20)
+        XCTAssertTrue(ids.contains("2026-02-01"))
+        XCTAssertTrue(ids.contains("2026-08-10"))
         XCTAssertTrue(ids.contains("2026-08-14"))
-        XCTAssertFalse(ids.contains("2026-02-01"))
+        XCTAssertEqual(grid.flatMap(\.cells).first { $0.id == "2026-02-01" }?.requests, 0)
+        XCTAssertEqual(grid.flatMap(\.cells).first { $0.id == "2026-08-10" }?.requests, 3)
     }
 
     func testAllTimeSpansFirstToLastActiveDay() {
@@ -130,12 +134,13 @@ final class UsageActivityHeatmapTests: XCTestCase {
             end: UsageDayKey(year: 2026, month: 1, day: 31)
         )
         let bounds = UsageActivityHeatmapView.dayBounds(days: days, range: range, timeZone: tz, now: now)
-        XCTAssertEqual(bounds?.start, start)
-        XCTAssertEqual(bounds?.end, end)
+        XCTAssertEqual(bounds?.start, ActivityDayKey(year: 2026, month: 1, day: 1))
+        XCTAssertEqual(bounds?.end, ActivityDayKey(year: 2026, month: 1, day: 31))
         let grid = UsageActivityHeatmapView.buildGrid(days: days, range: range, timeZone: tz, now: now)
         let ids = Set(grid.flatMap(\.cells).map(\.id))
+        XCTAssertTrue(ids.contains("2026-01-01"))
         XCTAssertTrue(ids.contains("2026-01-10"))
-        XCTAssertTrue(ids.contains("2026-01-20"))
+        XCTAssertTrue(ids.contains("2026-01-31"))
         XCTAssertFalse(ids.contains("2026-08-14"))
     }
 
@@ -153,7 +158,7 @@ final class UsageActivityHeatmapTests: XCTestCase {
         let grid = UsageActivityHeatmapView.buildGrid(days: days, range: range, timeZone: tz, now: now)
         let ids = Set(grid.flatMap(\.cells).map(\.id))
         XCTAssertGreaterThan(grid.count, 56)
-        XCTAssertLessThanOrEqual(grid.count, 80)
+        XCTAssertLessThanOrEqual(grid.count, 110)
         XCTAssertTrue(ids.contains("2025-01-01"))
         XCTAssertTrue(ids.contains("2026-02-20"))
     }
@@ -193,6 +198,35 @@ final class UsageActivityHeatmapTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(labels.filter { $0 == "J" }.count, 2)
     }
 
+    func testLayoutHitTestUsesCellRectsNotStrideGaps() {
+        let day = DayActivity(
+            day: ActivityDayKey(year: 2026, month: 2, day: 2),
+            requestCount: 4,
+            tokens: 8,
+            spanMs: 0,
+            estimatedActiveMs: 0
+        )
+        let range = UsageRange.month(YearMonth(year: 2026, month: 2))
+        let layout = HeatmapLayout.make(
+            days: [day],
+            range: range,
+            timeZone: tz,
+            cell: 10,
+            gap: 2,
+            now: now
+        )
+        XCTAssertFalse(layout.grid.isEmpty)
+        let origin = layout.cellOrigin(week: 0, row: 0)
+        let inside = CGPoint(x: origin.x + 5, y: origin.y + 5)
+        XCTAssertNotNil(layout.cell(at: inside))
+        let inGap = CGPoint(x: origin.x + 11, y: origin.y + 5)
+        XCTAssertNil(layout.cell(at: inGap))
+        XCTAssertNil(layout.cell(at: CGPoint(x: 5, y: 4)))
+        if let id = layout.cell(at: inside)?.id {
+            XCTAssertEqual(layout.frame(of: id)?.origin, origin)
+        }
+    }
+
     func testWeekdayAbbreviationsAreMondayFirst() {
         let labels = UsageActivityHeatmapView.weekdayAbbreviations(
             timeZone: tz,
@@ -202,7 +236,7 @@ final class UsageActivityHeatmapTests: XCTestCase {
         XCTAssertEqual(UsageActivityHeatmapView.weekdayGutterLabels(), ["M", "", "W", "", "F", "", ""])
     }
 
-    func testAllTimeLongerThanEightyWeeksIsCapped() {
+    func testAllTimeLongerThanWeekCapIsCapped() {
         let start = ActivityDayKey(year: 2024, month: 1, day: 10)
         let end = ActivityDayKey(year: 2026, month: 8, day: 14)
         let days = [
@@ -214,8 +248,9 @@ final class UsageActivityHeatmapTests: XCTestCase {
             end: UsageDayKey(year: 2026, month: 8, day: 14)
         )
         let grid = UsageActivityHeatmapView.buildGrid(days: days, range: range, timeZone: tz, now: now)
-        XCTAssertEqual(grid.count, 80)
-        XCTAssertTrue(grid.flatMap(\.cells).contains { $0.id == "2024-01-10" })
+        XCTAssertEqual(grid.count, 110)
+        XCTAssertTrue(grid.flatMap(\.cells).contains { $0.id == "2026-08-14" })
+        XCTAssertFalse(grid.flatMap(\.cells).contains { $0.id == "2024-01-10" })
     }
 
     private static func localDate(year: Int, month: Int, day: Int, timeZone: TimeZone) -> Date {

@@ -93,6 +93,25 @@ public struct ModelFamilySection: Sendable, Equatable, Identifiable {
         self.family = family
         self.rows = rows
     }
+
+    /// True when this family actually splits by generation (Grok 4.6 vs 4.5).
+    public var showsLineHeaders: Bool {
+        ActivityModelCatalog.familyTree(rows)
+            .first { $0.family == family }?
+            .showsLineHeaders ?? false
+    }
+}
+
+/// One generation inside a family (`Cursor Grok 4.6`, `Sonnet 4.6`).
+public struct ModelLineSection: Sendable, Equatable, Identifiable {
+    public var id: String { line.id }
+    public let line: ModelDisplayNames.Line
+    public let rows: [ModelPricingRow]
+
+    public init(line: ModelDisplayNames.Line, rows: [ModelPricingRow]) {
+        self.line = line
+        self.rows = rows
+    }
 }
 
 /// All models in the fetched event slice, with implied Cursor rates and subsidy.
@@ -170,13 +189,26 @@ public enum ActivityModelCatalog {
         )
     }
 
-    /// Groups rows by family. Empty families are omitted; order is `Family.allCases`.
+    public static func familyTree(_ rows: [ModelPricingRow]) -> [ModelFamilyGroup<ModelPricingRow>] {
+        ModelHierarchy.grouped(rows, intent: \.modelIntent, displayName: \.displayName)
+    }
+
+    /// Groups rows by the shared Newton tree. Empty families are omitted.
     public static func sectionsByFamily(_ rows: [ModelPricingRow]) -> [ModelFamilySection] {
-        let grouped = Dictionary(grouping: rows) { ModelDisplayNames.Family.of(modelIntent: $0.modelIntent) }
-        return ModelDisplayNames.Family.allCases.compactMap { family in
-            guard let members = grouped[family], !members.isEmpty else { return nil }
-            return ModelFamilySection(family: family, rows: members)
+        familyTree(rows).map { group in
+            ModelFamilySection(family: group.family, rows: group.items)
         }
+    }
+
+    /// Generation buckets for one family, newest first. Row order is the input order.
+    public static func lines(
+        in rows: [ModelPricingRow],
+        family: ModelDisplayNames.Family
+    ) -> [ModelLineSection] {
+        guard let group = familyTree(rows).first(where: { $0.family == family }) else {
+            return []
+        }
+        return group.lines.map { ModelLineSection(line: $0.line, rows: $0.items) }
     }
 
     public static func impliedCentsPerMillion(usageValueCents: Int64, tokens: Int64) -> Int64? {
@@ -190,7 +222,7 @@ public enum ActivityModelCatalog {
         "\(ActivityCostSemantics.formatCents(centsPerMillion)) / 1M"
     }
 
-    public static func rateTimelineCaption(for row: ModelPricingRow, timeZone: TimeZone) -> String? {
+    public static func rateChange(for row: ModelPricingRow, timeZone: TimeZone) -> ModelRateChange? {
         let priced = row.months.compactMap { month -> (YearMonth, Int64)? in
             guard let rate = month.impliedCentsPerMillion else { return nil }
             return (month.month, rate)
@@ -198,15 +230,45 @@ public enum ActivityModelCatalog {
         guard priced.count >= 2, let first = priced.first, let last = priced.last else {
             return nil
         }
-        let start = shortMonth(first.0, timeZone: timeZone)
-        let end = shortMonth(last.0, timeZone: timeZone)
-        if first.1 == last.1 {
-            return "\(start) to \(end) \(formatRate(first.1))"
+        return ModelRateChange(
+            startCentsPerMillion: first.1,
+            endCentsPerMillion: last.1,
+            monthRangeLabel: compactMonthRange(first.0, last.0, timeZone: timeZone),
+            startMonthLabel: shortMonth(first.0, timeZone: timeZone),
+            endMonthLabel: shortMonth(last.0, timeZone: timeZone)
+        )
+    }
+
+    public static func rateTimelineCaption(for row: ModelPricingRow, timeZone: TimeZone) -> String? {
+        rateChange(for: row, timeZone: timeZone)?.accessibilityLabel
+    }
+
+    public static func compactMonthRange(
+        _ start: YearMonth,
+        _ end: YearMonth,
+        timeZone: TimeZone
+    ) -> String {
+        let startName = monthName(start, timeZone: timeZone)
+        let endName = monthName(end, timeZone: timeZone)
+        if start.year == end.year {
+            return "\(startName)–\(endName)"
         }
-        return "\(start) \(formatRate(first.1)) → \(end) \(formatRate(last.1))"
+        return "\(shortMonth(start, timeZone: timeZone))–\(shortMonth(end, timeZone: timeZone))"
     }
 
     public static func shortMonth(_ month: YearMonth, timeZone: TimeZone) -> String {
+        formattedMonth(month, timeZone: timeZone, template: "MMM yyyy")
+    }
+
+    public static func monthName(_ month: YearMonth, timeZone: TimeZone) -> String {
+        formattedMonth(month, timeZone: timeZone, template: "MMM")
+    }
+
+    private static func formattedMonth(
+        _ month: YearMonth,
+        timeZone: TimeZone,
+        template: String
+    ) -> String {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         var components = DateComponents()
@@ -217,7 +279,7 @@ public enum ActivityModelCatalog {
         let formatter = DateFormatter()
         formatter.locale = .current
         formatter.timeZone = timeZone
-        formatter.setLocalizedDateFormatFromTemplate("MMM yyyy")
+        formatter.setLocalizedDateFormatFromTemplate(template)
         return formatter.string(from: date)
     }
 

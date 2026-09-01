@@ -7,6 +7,11 @@ final class DashboardModelOrderingTests: XCTestCase {
         XCTAssertEqual(DashboardModelGroup.none.triggerLabel, "No grouping")
         XCTAssertEqual(DashboardModelGroup.family.menuTitle, "Family")
         XCTAssertEqual(DashboardModelGroup.family.triggerLabel, "By family")
+        XCTAssertEqual(ModelDisplayNames.familyGroupCountLabel(1), "1 model")
+        XCTAssertEqual(ModelDisplayNames.familyGroupCountLabel(5), "5 models")
+        XCTAssertEqual(ModelDisplayNames.familyGroupCountLabel(17), "17 models")
+        XCTAssertNotEqual(ModelDisplayNames.Family.grok.title, "Grok")
+        XCTAssertEqual(ModelDisplayNames.Family.grok.title, "Cursor Grok")
     }
 
     func testTokensDescendingPutsLargestFirst() {

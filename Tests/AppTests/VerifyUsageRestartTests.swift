@@ -25,6 +25,8 @@ final class VerifyUsageRestartTests: XCTestCase {
             keychain: RestartTestSeatStore(),
             cardSnapshotStore: UsageCardSnapshotStore(applicationSupportRoot: root),
             chartSnapshotStore: UsageChartSnapshotStore(applicationSupportRoot: root),
+            userLabelStore: SeatUserLabelStore(applicationSupportRoot: root),
+            publicRosterStore: PublicRosterStore(applicationSupportRoot: root),
             autostart: false
         )
         XCTAssertEqual(model.usageBySeat[.seat1]?.plan.name, VerifyUsageCacheSeed.planName)

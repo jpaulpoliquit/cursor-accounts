@@ -253,6 +253,7 @@ final class SeatPresentationTests: XCTestCase {
         )
         let focused = try! XCTUnwrap(presentation.focusedSeat)
         XCTAssertEqual(focused.label.text, "john 5")
+        XCTAssertEqual(focused.dashboardTitle, "john 5")
         XCTAssertNil(focused.revealedEmail)
         XCTAssertEqual(Int(focused.autoPercent!.percent.rounded()), 68)
         XCTAssertEqual(Int(focused.apiPercent!.percent.rounded()), 100)
@@ -373,5 +374,28 @@ final class SeatPresentationTests: XCTestCase {
             policy: .maskEmail
         )
         XCTAssertEqual(scrubbed, "Something went wrong with this account")
+    }
+
+    func testUserLabelWinsDashboardAndMenuTitle() {
+        let seat = SeatSnapshot(
+            seatID: .seat1,
+            auth: .signedIn,
+            displayName: DisplayName("john 5")
+        )
+        let presentation = SeatPresentationProjector.project(
+            aggregate: AggregateSnapshot(seats: [seat]),
+            usageBySeat: [:],
+            identityPolicy: .maskEmail,
+            focusedSeatID: .seat1,
+            loginPhases: [:],
+            bootstrapPhase: .settled(.kept(.seat1)),
+            usageRefreshPhase: .idle,
+            setHardLimitPhase: .idle,
+            userLabels: [.seat1: SeatUserLabel("Work")!]
+        )
+        let focused = try! XCTUnwrap(presentation.focusedSeat)
+        XCTAssertEqual(focused.dashboardTitle, "Work")
+        XCTAssertEqual(focused.menuRow.primaryName, "Work")
+        XCTAssertEqual(focused.label.text, "john 5")
     }
 }

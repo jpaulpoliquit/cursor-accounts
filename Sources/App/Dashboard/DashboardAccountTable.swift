@@ -123,6 +123,11 @@ struct DashboardAccountTable: View {
                     Text(seat.dashboardTitle)
                         .font(CursorProfile.Font.table.weight(.semibold))
                         .lineLimit(1)
+                        .onTapGesture {
+                            if seat.auth == .signedIn || seat.auth == .needsReauth {
+                                model.presentLabelEditor(seatID: seat.seatID)
+                            }
+                        }
                     if seat.isDesktopBound {
                         ActiveMenuMarker()
                     }
@@ -133,7 +138,12 @@ struct DashboardAccountTable: View {
                         CursorProfilePill(title: "Team")
                     }
                 }
-                if let email = seat.revealedEmail, email.value != seat.dashboardTitle {
+                if let userLabel = seat.userLabel, userLabel.value != seat.label.text {
+                    Text(seat.label.text)
+                        .font(CursorProfile.Font.meta)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else if let email = seat.revealedEmail, email.value != seat.dashboardTitle {
                     Text(email.value)
                         .font(CursorProfile.Font.meta)
                         .foregroundStyle(.secondary)

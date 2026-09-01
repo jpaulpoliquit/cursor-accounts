@@ -2,19 +2,18 @@ import CursorBarDomain
 import SwiftUI
 
 struct DashboardUsageStatsRow: View {
-    let insights: ActivityInsights
-    let thisSeatID: SeatID?
-    let thisSeatTitle: String
+    let insights: ActivityInsights?
+    var now: Date = Date()
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 24) {
+            HStack(alignment: .top, spacing: CursorProfile.sectionSpacing) {
                 stats
             }
             LazyVGrid(
                 columns: [GridItem(.flexible()), GridItem(.flexible())],
                 alignment: .leading,
-                spacing: 16
+                spacing: CursorProfile.cardPadding
             ) {
                 stats
             }
@@ -23,28 +22,42 @@ struct DashboardUsageStatsRow: View {
 
     @ViewBuilder
     private var stats: some View {
-        let headline = insights.tokenHeadline(thisSeatID: thisSeatID)
         CursorProfileStat(
-            label: "Tokens · this account",
-            value: compact(headline.thisAccount)
+            label: "Agent time · all time",
+            value: allTimeValue
         )
-        .accessibilityHint(thisSeatTitle)
+        .help(allTimeHelp)
         CursorProfileStat(
-            label: "Tokens · all accounts",
-            value: compact(headline.allAccounts)
+            label: "Agent time · 30 days",
+            value: thirtyDayValue
         )
-        CursorProfileStat(
-            label: "Requests",
-            value: TokenCountFormat.compact(Int64(insights.totalRequests))
-        )
-        CursorProfileStat(
-            label: "Active days",
-            value: "\(insights.activeDayCount)"
+        .help(thirtyDayHelp)
+    }
+
+    private var timeZone: TimeZone {
+        guard let insights else { return .current }
+        return TimeZone(identifier: insights.timeZoneIdentifier) ?? .current
+    }
+
+    private var allTimeValue: String {
+        guard let insights else { return "—" }
+        return ActivityInsights.durationCompact(insights.totalAgentTimeMs)
+    }
+
+    private var thirtyDayValue: String {
+        guard let insights else { return "—" }
+        return ActivityInsights.durationCompact(
+            insights.trailingAgentTimeMs(now: now, timeZone: timeZone)
         )
     }
 
-    private func compact(_ tokens: Int64?) -> String {
-        guard let tokens else { return "—" }
-        return TokenCountFormat.compact(tokens)
+    private var allTimeHelp: String {
+        let base = insights?.agentTimeHelp ?? "Estimated time agents were active."
+        return "\(base) All loaded history."
+    }
+
+    private var thirtyDayHelp: String {
+        let base = insights?.agentTimeHelp ?? "Estimated time agents were active."
+        return "\(base) Last 30 local days."
     }
 }

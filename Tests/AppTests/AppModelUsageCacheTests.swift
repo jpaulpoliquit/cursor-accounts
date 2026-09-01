@@ -16,6 +16,8 @@ final class AppModelUsageCacheTests: XCTestCase {
             keychain: CacheTestSeatStore(records: []),
             cardSnapshotStore: store,
             chartSnapshotStore: UsageChartSnapshotStore(applicationSupportRoot: root),
+            userLabelStore: SeatUserLabelStore(applicationSupportRoot: root),
+            publicRosterStore: PublicRosterStore(applicationSupportRoot: root),
             autostart: false
         )
         XCTAssertEqual(model.usageBySeat[.seat1], snapshot)
@@ -30,6 +32,8 @@ final class AppModelUsageCacheTests: XCTestCase {
             keychain: CacheTestSeatStore(records: []),
             cardSnapshotStore: store,
             chartSnapshotStore: UsageChartSnapshotStore(applicationSupportRoot: root),
+            userLabelStore: SeatUserLabelStore(applicationSupportRoot: root),
+            publicRosterStore: PublicRosterStore(applicationSupportRoot: root),
             autostart: false
         )
         let snapshot = Self.cardSnapshot(seatID: .seat2)
@@ -77,6 +81,8 @@ final class AppModelUsageCacheTests: XCTestCase {
             keychain: CacheTestSeatStore(records: []),
             cardSnapshotStore: UsageCardSnapshotStore(applicationSupportRoot: root),
             chartSnapshotStore: chartStore,
+            userLabelStore: SeatUserLabelStore(applicationSupportRoot: root),
+            publicRosterStore: PublicRosterStore(applicationSupportRoot: root),
             autostart: false
         )
         XCTAssertEqual(model.usageSeries.series, series)
@@ -92,6 +98,8 @@ final class AppModelUsageCacheTests: XCTestCase {
             keychain: store,
             cardSnapshotStore: UsageCardSnapshotStore(applicationSupportRoot: root),
             chartSnapshotStore: UsageChartSnapshotStore(applicationSupportRoot: root),
+            userLabelStore: SeatUserLabelStore(applicationSupportRoot: root),
+            publicRosterStore: PublicRosterStore(applicationSupportRoot: root),
             autostart: false
         )
         _ = model.signedInCredentialsForTests()

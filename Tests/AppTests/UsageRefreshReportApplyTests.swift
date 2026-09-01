@@ -24,6 +24,8 @@ final class UsageRefreshReportApplyTests: XCTestCase {
             keychain: store,
             cardSnapshotStore: UsageCardSnapshotStore(applicationSupportRoot: cacheRoot),
             chartSnapshotStore: UsageChartSnapshotStore(applicationSupportRoot: cacheRoot),
+            userLabelStore: SeatUserLabelStore(applicationSupportRoot: cacheRoot),
+            publicRosterStore: PublicRosterStore(applicationSupportRoot: cacheRoot),
             autostart: false
         )
         model.reloadShellFromKeychain()

@@ -124,6 +124,10 @@ struct DashboardAccountActionsMenu: View {
                     }
                 }
 
+                Button(seat.userLabel == nil ? "Set label…" : "Edit label…") {
+                    model.presentLabelEditor(seatID: seat.seatID)
+                }
+
                 Button("Show in Dashboard") {
                     model.focus(seatID: seat.seatID)
                 }

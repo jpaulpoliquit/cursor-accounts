@@ -186,6 +186,7 @@ final class DashboardRedesignSourceTests: XCTestCase {
         XCTAssertTrue(plot.contains("opacity(0.06)"))
         XCTAssertTrue(plot.contains("unit: .day"))
         XCTAssertTrue(plot.contains("series: .value(\"Series\", \"total\")"))
+        XCTAssertTrue(plot.contains("UsageChartDateLabel.edge"))
         XCTAssertFalse(plot.contains("stackedMarks"))
         XCTAssertFalse(plot.contains("yStart:"))
         let fonts = try source("Sources/App/Design/CursorProfile.swift")

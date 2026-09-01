@@ -30,6 +30,7 @@
 		0BF29FE66B92EACC6CDDAE50 /* CursorBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BE838EAB0B831ED4BF50DD /* CursorBarApp.swift */; };
 		0C25CFE1EBFD464A6E68AC7A /* UsageTokenSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D580506708F816E00F217844 /* UsageTokenSummary.swift */; };
 		0C55980D44426E4DDA16AC10 /* FiniteLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = C680049E895945809056C761 /* FiniteLayout.swift */; };
+		0C9E357D008A00B7505ECDD6 /* UsageChartDateLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 145DDF6FC278F46DA5169581 /* UsageChartDateLabel.swift */; };
 		0CBCA1EE691011B26A539391 /* CursorBarDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2ADE263171E0E196308D94BE /* CursorBarDomain.framework */; };
 		0D7E086C78DB3D646F004CFE /* TopModelsCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFCD950A7B17FBF6E22E1A35 /* TopModelsCopy.swift */; };
 		0D9D7B975756FC1B7BA72748 /* DashboardSessionProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A026C6827552B177E27454 /* DashboardSessionProbeTests.swift */; };
@@ -280,6 +281,7 @@
 		BC332C37D59B7C3AC6AC9033 /* BootstrapPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F0F4A74C802DC5152882DB4 /* BootstrapPhase.swift */; };
 		BCD8C14F1494E3AD896C6951 /* UsageSeriesAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACE059283A2885E75D515B4D /* UsageSeriesAggregatorTests.swift */; };
 		BD64B1EC66131ABAB24A4B28 /* DesktopSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D31C1934A2166462CF8A84 /* DesktopSession.swift */; };
+		BD8AA2F34B6CB635A2B8C66C /* UsageChartDateLabelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9B3CF6DBC90E04C6B82329 /* UsageChartDateLabelTests.swift */; };
 		BF093FF2A0F052C576072BC0 /* AccountMenuRowModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B025877788AD8179B07279B /* AccountMenuRowModelTests.swift */; };
 		BF64C288738C459B960874D1 /* UsageSeriesCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7528546F0AAFF804C27140CA /* UsageSeriesCoordinator.swift */; };
 		C02C5A1708EDB4A33EE12A5C /* DashboardSettingsRailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0F3511DB2B6B0A4B80C027 /* DashboardSettingsRailView.swift */; };
@@ -542,6 +544,7 @@
 		1312085C69E77A514EE484F0 /* CursorAccountsMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorAccountsMain.swift; sourceTree = "<group>"; };
 		133FD629875829BCC84BB6EB /* SeatRosterReconcilerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatRosterReconcilerTests.swift; sourceTree = "<group>"; };
 		13F631709524AA18DC3C66FD /* DashboardTabBody.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardTabBody.swift; sourceTree = "<group>"; };
+		145DDF6FC278F46DA5169581 /* UsageChartDateLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageChartDateLabel.swift; sourceTree = "<group>"; };
 		147032CD8E24171323A4CEB0 /* ActivityModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityModelCatalog.swift; sourceTree = "<group>"; };
 		14A9D69F3DB1B33C20ACE723 /* UsageInsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageInsightsView.swift; sourceTree = "<group>"; };
 		154023517158636582D527CE /* ActivityDayKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDayKey.swift; sourceTree = "<group>"; };
@@ -806,6 +809,7 @@
 		C7AE255D4244AA460A3302D3 /* ActivityInsights+Queries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ActivityInsights+Queries.swift"; sourceTree = "<group>"; };
 		C8A0C0D54A7F7A8C19ACA1CE /* DashboardModelOrderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardModelOrderingTests.swift; sourceTree = "<group>"; };
 		C8A90B05881F6E23CA5D139B /* DashboardGlassTitleBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardGlassTitleBar.swift; sourceTree = "<group>"; };
+		CA9B3CF6DBC90E04C6B82329 /* UsageChartDateLabelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageChartDateLabelTests.swift; sourceTree = "<group>"; };
 		CB3B6B1CD1E50B250EC8C94A /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		CC2AA90AAD40009243662262 /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokens.swift; sourceTree = "<group>"; };
 		CEC2C39097738C9E6883E77F /* AccountLabelResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountLabelResolverTests.swift; sourceTree = "<group>"; };
@@ -975,6 +979,7 @@
 				3438E7E8FB170B09E50F03E8 /* SeatUserLabelTests.swift */,
 				7BF9283EF39B6100B1C1640A /* TokenCountFormatTests.swift */,
 				17D05EBC17A3BEFFC91E3751 /* UsageCachePolicyTests.swift */,
+				CA9B3CF6DBC90E04C6B82329 /* UsageChartDateLabelTests.swift */,
 				778C7061E7DB23549D22CC09 /* UsageRangeTests.swift */,
 				ACE059283A2885E75D515B4D /* UsageSeriesAggregatorTests.swift */,
 				A4903B9099DB91A342F086F5 /* UsageTokenSummaryTests.swift */,
@@ -1282,6 +1287,7 @@
 				AFCD950A7B17FBF6E22E1A35 /* TopModelsCopy.swift */,
 				C0318700CA5615E41CE73889 /* Usage.swift */,
 				506FF55717107571181C7BD1 /* UsageCachePolicy.swift */,
+				145DDF6FC278F46DA5169581 /* UsageChartDateLabel.swift */,
 				4693D480C8A44BB0D10B263E /* UsageChartInspection.swift */,
 				8DC1AA997F09D6C633287553 /* UsageChartSnapshot.swift */,
 				25C744B1DCAAA3B73E787A8E /* UsageRange.swift */,
@@ -2007,6 +2013,7 @@
 				0D7E086C78DB3D646F004CFE /* TopModelsCopy.swift in Sources */,
 				52D16C341FB1931362A36F9E /* Usage.swift in Sources */,
 				DEC60272A999DB17522D2EDE /* UsageCachePolicy.swift in Sources */,
+				0C9E357D008A00B7505ECDD6 /* UsageChartDateLabel.swift in Sources */,
 				C2DF4F1686BC72F47B266E30 /* UsageChartInspection.swift in Sources */,
 				220F8B5B20BDD1543C249DAB /* UsageChartSnapshot.swift in Sources */,
 				3DF3EAD6FE75B876282479D8 /* UsageRange.swift in Sources */,
@@ -2064,6 +2071,7 @@
 				CB19640BAC2536A9CD77268A /* SeatUserLabelTests.swift in Sources */,
 				B56B9A25F2F6F94E10810E19 /* TokenCountFormatTests.swift in Sources */,
 				9552C0E00AE253FD67AC1486 /* UsageCachePolicyTests.swift in Sources */,
+				BD8AA2F34B6CB635A2B8C66C /* UsageChartDateLabelTests.swift in Sources */,
 				D0AA3B18F4EAEE5F5B45FF80 /* UsageRangeTests.swift in Sources */,
 				BCD8C14F1494E3AD896C6951 /* UsageSeriesAggregatorTests.swift in Sources */,
 				D34D4E5B3F21A11867558D6E /* UsageTokenSummaryTests.swift in Sources */,

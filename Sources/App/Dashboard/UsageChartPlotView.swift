@@ -326,7 +326,7 @@ struct UsageChartPlotView: View {
     }
 
     private func profileDateLabel(_ date: Date) -> String {
-        date.formatted(.dateTime.month(.abbreviated).day())
+        UsageChartDateLabel.edge(date, now: Date())
     }
 
     private func date(for day: UsageDayKey) -> Date {
